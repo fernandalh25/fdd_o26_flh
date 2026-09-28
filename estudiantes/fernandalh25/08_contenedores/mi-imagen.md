@@ -24,8 +24,7 @@ URL: https://hub.docker.com/r/fersy25/fersy-tarea-08
 
 ```text
 docker inspect --format '{{index .RepoDigests 0}}' fersy25/fersy-tarea-08
-fersy25/fersy-tarea-08@sha256:e5f71e7c23a4a6c2f7fb20935cb6b1290d4e7cd5ff15f28fb7455b33d1c46bec
-
+fersy25/fersy-tarea-08@sha256:2ee243c76ecc8bf956e5b85037c335478190a0642f1b018aeacfea13544688ca
 ```
 
 ## Cómo la corro yo
@@ -46,7 +45,7 @@ d7a78688ae08: Pull complete
 1aeaaf75e28e: Pull complete 
 3209c9ff24e6: Pull complete 
 0a4e3e7859af: Download complete 
-Digest: sha256:e5f71e7c23a4a6c2f7fb20935cb6b1290d4e7cd5ff15f28fb7455b33d1c46bec
+Digest: sha256:2ee243c76ecc8bf956e5b85037c335478190a0642f1b018aeacfea13544688ca
 Status: Downloaded newer image for fersy25/fersy-tarea-08:latest
 Corriendo como: root
 requests 2.32.3
@@ -67,9 +66,9 @@ Untagged: fersy25/fersy-tarea-08:latest
 docker run --rm fersy25/fersy-tarea-08
 Unable to find image 'fersy25/fersy-tarea-08:latest' locally
 latest: Pulling from fersy25/fersy-tarea-08
-Digest: sha256:e5f71e7c23a4a6c2f7fb20935cb6b1290d4e7cd5ff15f28fb7455b33d1c46bec
+Digest: sha256:2ee243c76ecc8bf956e5b85037c335478190a0642f1b018aeacfea13544688ca
 Status: Downloaded newer image for fersy25/fersy-tarea-08:latest
-Corriendo como: root
+Corriendo como: appuser
 requests 2.32.3
 
 ```
@@ -81,6 +80,6 @@ Menos de 300 MB. Pega la salida con el tamaño visible:
 ```text
 docker images fersy25/fersy-tarea-08
 IMAGE                           ID             DISK USAGE   CONTENT SIZE   EXTRA
-fersy25/fersy-tarea-08:latest   e5f71e7c23a4        206MB         50.7MB    U   
+fersy25/fersy-tarea-08:latest   2ee243c76ecc        206MB         50.7MB    U   
 
 ```

@@ -50,7 +50,7 @@ IMAGE                           ID             DISK USAGE   CONTENT SIZE   EXTRA
 alpine:3.20                     d9e853e87e55       13.7MB         4.17MB        
 apache/hadoop:3.4.3             127774dadab4        2.2GB          750MB        
 cassandra:5.0                   d07910a14210        569MB          170MB        
-fersy25/fersy-tarea-08:latest   e5f71e7c23a4        206MB         50.7MB        
+fersy25/fersy-tarea-08:latest   2ee243c76ecc        206MB         50.7MB      
 hello-world:latest              5e2309035332       22.6kB         10.3kB    U   
 mongo:7.0                       4510cf3d7050       1.09GB          274MB        
 neo4j:5                         b357872da95a        982MB          355MB        
@@ -60,22 +60,24 @@ postgres:17                     f4c66b820c6f        667MB          166MB
 python:3.12-slim                2f17fc044b57        382MB           89MB        
 ubuntu:24.04                    008173c23f95        141MB         30.9MB   
 
-docker history <tu-usuario>/<tu-imagen>
-IMAGE          CREATED         CREATED BY                                      SIZE      COMMENT
-e5f71e7c23a4   8 minutes ago   CMD ["python" "app.py"]                         0B        buildkit.dockerfile.v0
-<missing>      8 minutes ago   RUN /bin/sh -c pip install -r requirements.t…   16.1MB    buildkit.dockerfile.v0
-<missing>      8 minutes ago   COPY app.py . # buildkit                        12.3kB    buildkit.dockerfile.v0
-<missing>      8 minutes ago   COPY requirements.txt . # buildkit              12.3kB    buildkit.dockerfile.v0
-<missing>      8 minutes ago   WORKDIR /app                                    8.19kB    buildkit.dockerfile.v0
-<missing>      9 days ago      CMD ["python3"]                                 0B        buildkit.dockerfile.v0
-<missing>      9 days ago      RUN /bin/sh -c set -eux;  for src in idle3 p…   16.4kB    buildkit.dockerfile.v0
-<missing>      9 days ago      RUN /bin/sh -c set -eux;   savedAptMark="$(a…   43.1MB    buildkit.dockerfile.v0
-<missing>      9 days ago      ENV PYTHON_SHA256=3b48dac8fb59f62eaa67ac83c1…   0B        buildkit.dockerfile.v0
-<missing>      9 days ago      ENV PYTHON_VERSION=3.14.7                       0B        buildkit.dockerfile.v0
-<missing>      9 days ago      RUN /bin/sh -c set -eux;  apt-get update;  a…   10.4MB    buildkit.dockerfile.v0
-<missing>      9 days ago      ENV PATH=/usr/local/bin:/usr/local/sbin:/usr…   0B        buildkit.dockerfile.v0
-<missing>      10 days ago     # debian.sh --arch 'amd64' out/ 'bookworm' '…   85.3MB    debuerreotype 0.17
+docker history fersy25/fersy-tarea-08 
 
+IMAGE          CREATED             CREATED BY                                      SIZE      COMMENT
+2ee243c76ecc   3 minutes ago       CMD ["python" "app.py"]                         0B        buildkit.dockerfile.v0
+<missing>      3 minutes ago       USER appuser                                    0B        buildkit.dockerfile.v0
+<missing>      3 minutes ago       RUN /bin/sh -c useradd -m appuser # buildkit    69.6kB    buildkit.dockerfile.v0
+<missing>      About an hour ago   RUN /bin/sh -c pip install -r requirements.t…   16.1MB    buildkit.dockerfile.v0
+<missing>      About an hour ago   COPY app.py . # buildkit                        12.3kB    buildkit.dockerfile.v0
+<missing>      About an hour ago   COPY requirements.txt . # buildkit              12.3kB    buildkit.dockerfile.v0
+<missing>      About an hour ago   WORKDIR /app                                    8.19kB    buildkit.dockerfile.v0
+<missing>      9 days ago          CMD ["python3"]                                 0B        buildkit.dockerfile.v0
+<missing>      9 days ago          RUN /bin/sh -c set -eux;  for src in idle3 p…   16.4kB    buildkit.dockerfile.v0
+<missing>      9 days ago          RUN /bin/sh -c set -eux;   savedAptMark="$(a…   43.1MB    buildkit.dockerfile.v0
+<missing>      9 days ago          ENV PYTHON_SHA256=3b48dac8fb59f62eaa67ac83c1…   0B        buildkit.dockerfile.v0
+<missing>      9 days ago          ENV PYTHON_VERSION=3.14.7                       0B        buildkit.dockerfile.v0
+<missing>      9 days ago          RUN /bin/sh -c set -eux;  apt-get update;  a…   10.4MB    buildkit.dockerfile.v0
+<missing>      9 days ago          ENV PATH=/usr/local/bin:/usr/local/sbin:/usr…   0B        buildkit.dockerfile.v0
+<missing>      10 days ago         # debian.sh --arch 'amd64' out/ 'bookworm' '…   85.3MB    debuerreotype 0.17
 ```
 
 ## Los tres defectos de `roto/Dockerfile`
@@ -83,8 +85,8 @@ e5f71e7c23a4   8 minutes ago   CMD ["python" "app.py"]                         0
 Uno por línea: qué estaba mal, qué consecuencia tiene, y qué cambiaste.
 
 1.Añadí el tag al FROM ya que tenía latest y podría tener una versión que no tiene mi programa, lo cambié a una fija que encontré en la página oficial de imagenes de pyhton : 3.14.7-slim-bookworm
-2.Completé el COPY . . que estaba trayendo archivos innecesarios, sólo dejé el requirements.txt .
-3.Añadí otro copy con appy.py porque estaba en el CMD, que de un inició si se incluía en el COPY . ., pero al modificarlo era necesario añadir ese archivo específico: COPY app.py .
+2.Completé el COPY . . que estaba trayendo archivos innecesarios, sólo dejé el requirements.txt y añadí otro copy con appy.py porque estaba en el CMD, que de un inició si se incluía en el COPY . ., pero al modificarlo era necesario añadir ese archivo específico: COPY app.py .
+3.Cambié el user para que no fuera el de root
 
 ## Una cosa que se me rompió
 No utilicé el comando correcto para construir la imagen y que se abriera en linux dado mi sistema operativo, lo borré y volví a construir
