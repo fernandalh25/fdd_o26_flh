@@ -85,7 +85,7 @@ IMAGE          CREATED             CREATED BY                                   
 Uno por línea: qué estaba mal, qué consecuencia tiene, y qué cambiaste.
 
 1.Añadí el tag al FROM ya que tenía latest y podría tener una versión que no tiene mi programa, lo cambié a una fija que encontré en la página oficial de imagenes de pyhton : 3.14.7-slim-bookworm
-2.Completé el COPY . . que estaba trayendo archivos innecesarios, sólo dejé el requirements.txt y añadí otro copy con appy.py porque estaba en el CMD, que de un inició si se incluía en el COPY . ., pero al modificarlo era necesario añadir ese archivo específico: COPY app.py .
+2.Hice dos COPYs: uno que trajera consigo requirements.txt y otro app.py, este último debe ir después del RUN que instala requirements ya que si se modifica algo en app.py, el nuevo build tomará el caché hasta la capa del RUN y solo correrá desde cero a partir del COPY app.py en adelante
 3.Cambié el user para que no fuera el de root
 
 ## Una cosa que se me rompió

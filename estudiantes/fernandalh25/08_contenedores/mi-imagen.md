@@ -47,7 +47,7 @@ d7a78688ae08: Pull complete
 0a4e3e7859af: Download complete 
 Digest: sha256:2ee243c76ecc8bf956e5b85037c335478190a0642f1b018aeacfea13544688ca
 Status: Downloaded newer image for fersy25/fersy-tarea-08:latest
-Corriendo como: root
+Corriendo como: appuser
 requests 2.32.3
 ```
 
