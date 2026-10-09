@@ -147,11 +147,35 @@ git merge filtro
 :::
 
 ::: hint {of="xc-2-1"}
-¿Dónde está `main` y de qué commit nació `filtro`? ¿Hay algo que juntar, o basta con mover la etiqueta?
+Las tres ramas (`filtro`, `titulo`, `imagen`) están en tu clon, y las tres nacieron de B. Estado antes de esta fila:
+
+| `main` | `contar.sh` l. 6 | ¿`COPY datos/`? | `ventas.csv` | `git status --short` | Última imagen |
+|---|---|---|---|---|---|
+| B | `filas:` + `wc -l` | no | 2 `MX`, con commit | limpio | `rep:0`: sin `datos/` |
+
+¿`filtro` nació de la punta actual de `main`, o hay algo que juntar?
 :::
 
 ::: answer {of="xc-2-1"}
-**Fast-forward.** `main` sigue en B, y `filtro` es B más un commit. No hay nada que juntar: Git sólo **adelanta** `main` hasta F, sin crear ningún commit.
+**Fast-forward**: `main` avanza de B a F y no se crea ningún commit.
+
+Estado después de esta fila (en negritas, lo que cambió):
+
+| `main` | `contar.sh` l. 6 | ¿`COPY datos/`? | `ventas.csv` | `git status --short` | Última imagen |
+|---|---|---|---|---|---|
+| **F** | **`filas:` + `grep -c MX`** | no | 2 `MX`, con commit | limpio | `rep:0`: sin `datos/` |
+
+Antes del merge, `main` estaba en B, y `filtro` es B más un commit. No hay nada que juntar: Git sólo mueve `main` hasta F.
+
+```text
+$ git merge filtro
+Updating e788dc1..d0d102a
+Fast-forward
+ contar.sh | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+```
+
+La palabra `Fast-forward` en la salida lo confirma. Los hashes cambian en cada máquina.
 :::
 
 ::: problem {#xc-2-2 title="Fila 2 · ¿Y ahora? ¿Por qué es distinto?"}
@@ -161,11 +185,37 @@ git merge imagen
 :::
 
 ::: hint {of="xc-2-2"}
-Después de la fila 1, ¿`imagen` sigue colgando de la punta de `main`?
+Estado antes de esta fila:
+
+| `main` | `contar.sh` l. 6 | ¿`COPY datos/`? | `ventas.csv` | `git status --short` | Última imagen |
+|---|---|---|---|---|---|
+| **F** | **`filas:` + `grep -c MX`** | no | 2 `MX`, con commit | limpio | `rep:0`: sin `datos/` |
+
+¿`imagen` sigue colgando de la punta de `main`?
 :::
 
 ::: answer {of="xc-2-2"}
-**Commit de merge.** Ahora `main` está en F, e `imagen` nació en B: las dos ramas ya se separaron, y cada una tiene un commit que la otra no. Git las **junta** con un commit nuevo de dos padres (`Merge made by the 'ort' strategy`). No hay conflicto, porque F tocó `contar.sh` e I tocó el `Dockerfile`.
+**Commit de merge, sin conflicto.**
+
+Estado después de esta fila (en negritas, lo que cambió):
+
+| `main` | `contar.sh` l. 6 | ¿`COPY datos/`? | `ventas.csv` | `git status --short` | Última imagen |
+|---|---|---|---|---|---|
+| **merge F+I** | `filas:` + `grep -c MX` | **sí** | 2 `MX`, con commit | limpio | `rep:0`: sin `datos/` |
+
+- `main` ya está en F, e `imagen` nació en B.
+- Cada rama tiene un commit que la otra no tiene, así que Git ya no puede sólo mover la etiqueta.
+- Git las junta con un commit nuevo de dos padres.
+- No hay conflicto: F tocó `contar.sh` e I tocó `Dockerfile`.
+
+```text
+$ git merge imagen
+Merge made by the 'ort' strategy.
+ Dockerfile | 1 +
+ 1 file changed, 1 insertion(+)
+```
+
+Git abre el editor para el mensaje del merge; al cerrarlo aparece esa salida.
 :::
 
 ::: problem {#xc-2-3 title="Fila 3 · ¿Qué imprime el run?"}
@@ -176,11 +226,35 @@ docker run --rm rep:1
 :::
 
 ::: hint {of="xc-2-3"}
-¿Qué dos cambios tiene ya `main`? Cuenta los renglones con `MX`.
+Estado antes de esta fila:
+
+| `main` | `contar.sh` l. 6 | ¿`COPY datos/`? | `ventas.csv` | `git status --short` | Última imagen |
+|---|---|---|---|---|---|
+| **merge F+I** | `filas:` + `grep -c MX` | **sí** | 2 `MX`, con commit | limpio | `rep:0`: sin `datos/` |
+
+¿Qué copia el `Dockerfile` de `main`, y qué cuenta la línea 6?
 :::
 
 ::: answer {of="xc-2-3"}
-**`filas: 2`.** `main` ya tiene el `grep -c MX` de F y el `COPY datos/` de I: la imagen trae los datos, y hay dos renglones con `MX`. Todavía dice `filas:`, porque `titulo` no se ha mezclado.
+**`filas: 2`.**
+
+Estado después de esta fila (en negritas, lo que cambió):
+
+| `main` | `contar.sh` l. 6 | ¿`COPY datos/`? | `ventas.csv` | `git status --short` | Última imagen |
+|---|---|---|---|---|---|
+| merge F+I | `filas:` + `grep -c MX` | sí | 2 `MX`, con commit | limpio | **`rep:1`: `grep` + `datos/` de la fila 3** |
+
+- La línea 6 ya cuenta con `grep -c MX` (de F).
+- El `Dockerfile` ya copia `datos/` (de I), así que la imagen trae el CSV.
+- Hay dos renglones con `MX`.
+- Todavía dice `filas:`, porque `titulo` no se ha mezclado.
+
+```text
+$ docker run --rm rep:1
+filas: 2
+$ grep -c MX datos/ventas.csv
+2
+```
 :::
 
 ::: problem {#xc-2-4 title="Fila 4 · ¿Qué imprime cada run? (dos casillas)"}
@@ -192,12 +266,39 @@ docker run --rm -v "$(pwd)/datos":/r/datos rep:1
 :::
 
 ::: hint {of="xc-2-4"}
-¿Cuándo se copiaron los datos a la imagen? ¿Qué tapa un montaje?
+Estado antes de esta fila:
+
+| `main` | `contar.sh` l. 6 | ¿`COPY datos/`? | `ventas.csv` | `git status --short` | Última imagen |
+|---|---|---|---|---|---|
+| merge F+I | `filas:` + `grep -c MX` | sí | 2 `MX`, con commit | limpio | **`rep:1`: `grep` + `datos/` de la fila 3** |
+
+¿Cuándo se copiaron los datos a `rep:1`? ¿Qué tapa un montaje?
 :::
 
 ::: answer {of="xc-2-4"}
-- **Primero: `filas: 2`.** La imagen guardó los datos del momento del build. Agregar un renglón a tu disco no la cambia.
-- **Segundo: `filas: 3`.** El montaje tapa el `/r/datos` de la imagen con tu carpeta, que ya tiene el tercer `MX`.
+- **Primero: `filas: 2`.**
+- **Segundo: `filas: 3`.**
+
+Estado después de esta fila (en negritas, lo que cambió):
+
+| `main` | `contar.sh` l. 6 | ¿`COPY datos/`? | `ventas.csv` | `git status --short` | Última imagen |
+|---|---|---|---|---|---|
+| merge F+I | `filas:` + `grep -c MX` | sí | **3 `MX` (`MX,1` sin commit)** | **` M datos/ventas.csv`** | `rep:1`: `grep` + `datos/` de la fila 3 |
+
+- `rep:1` guardó `datos/` como estaba al construirla, en la fila 3. Agregar un renglón a tu disco no cambia la imagen.
+- El montaje tapa el `/r/datos` de la imagen con tu carpeta, que ya tiene el tercer `MX`.
+
+```text
+$ docker run --rm rep:1 cat datos/ventas.csv
+MX,10
+US,5
+MX,7
+CA,3
+$ git status --short
+ M datos/ventas.csv
+```
+
+El `MX,1` queda en tu disco **sin commit**. No se ve en ningún `git log`, pero cambia lo que pasa en las filas 5, 7, 8 y 10.
 :::
 
 ::: problem {#xc-2-5 title="Fila 5 · ¿Qué responde Git?"}
@@ -209,21 +310,42 @@ git merge titulo
 :::
 
 ::: hint {of="xc-2-5"}
-¿Qué línea cambió `filtro`, y cuál `titulo`? ¿Toca `titulo` el archivo de datos?
+Estado antes de esta fila:
+
+| `main` | `contar.sh` l. 6 | ¿`COPY datos/`? | `ventas.csv` | `git status --short` | Última imagen |
+|---|---|---|---|---|---|
+| merge F+I | `filas:` + `grep -c MX` | sí | **3 `MX` (`MX,1` sin commit)** | **` M datos/ventas.csv`** | `rep:1`: `grep` + `datos/` de la fila 3 |
+
+¿Qué línea cambió F, y cuál T? ¿Toca T el archivo de datos?
 :::
 
 ::: answer {of="xc-2-5"}
-**Conflicto:**
+**Conflicto en `contar.sh`. Sí te deja intentarlo.**
 
 ```text
+$ git merge titulo
 Auto-merging contar.sh
 CONFLICT (content): Merge conflict in contar.sh
 Automatic merge failed; fix conflicts and then commit the result.
 ```
 
-F y T cambiaron **la misma línea 6** de forma distinta, y Git no puede elegir por ti.
+Estado después de esta fila (en negritas, lo que cambió):
 
-**Sí te deja intentarlo**, porque `titulo` no toca `datos/ventas.csv` y el merge no tiene que pisarlo. `git status --short` muestra `UU contar.sh` (en conflicto) y ` M datos/ventas.csv` (tu cambio, intacto).
+| `main` | `contar.sh` l. 6 | ¿`COPY datos/`? | `ventas.csv` | `git status --short` | Última imagen |
+|---|---|---|---|---|---|
+| merge F+I | **marcadores** | sí | 3 `MX` (`MX,1` sin commit) | **`UU contar.sh`** y ` M datos/ventas.csv` | `rep:1`: `grep` + `datos/` de la fila 3 |
+
+- F y T cambiaron **la misma línea 6** de forma distinta. Git no puede elegir por ti y escribe los dos lados en el archivo.
+- `main` no se mueve: el merge queda a medias hasta que hagas commit.
+- Git se niega a empezar un merge cuando éste tendría que reescribir un archivo con cambios sin commit. T no toca `datos/ventas.csv`, así que tu `MX,1` queda intacto.
+
+```text
+$ git status --short
+UU contar.sh
+ M datos/ventas.csv
+```
+
+`UU` es «en conflicto». ` M` es tu cambio sin commit.
 :::
 
 ::: problem {#xc-2-6 title="Fila 6 · ¿Cómo se ve el archivo? ¿Cuál lado es HEAD?"}
@@ -235,7 +357,13 @@ Escribe cómo se ven ahora las últimas líneas.
 :::
 
 ::: hint {of="xc-2-6"}
-Los marcadores son `<<<<<<<`, `=======` y `>>>>>>>`. `HEAD` es la rama donde estás parado.
+Estado antes de esta fila:
+
+| `main` | `contar.sh` l. 6 | ¿`COPY datos/`? | `ventas.csv` | `git status --short` | Última imagen |
+|---|---|---|---|---|---|
+| merge F+I | **marcadores** | sí | 3 `MX` (`MX,1` sin commit) | **`UU contar.sh`** y ` M datos/ventas.csv` | `rep:1`: `grep` + `datos/` de la fila 3 |
+
+Los marcadores son `<<<<<<<`, `=======` y `>>>>>>>`. ¿Qué rama es `HEAD`?
 :::
 
 ::: answer {of="xc-2-6"}
@@ -247,7 +375,11 @@ printf 'total: %s\n' "$(wc -l < "$archivo")"
 >>>>>>> titulo
 ```
 
-`HEAD` es **la rama donde estás parado**: `main`, que ya traía el `grep` de F. Debajo del `=======` está lo que viene de `titulo`. Las líneas 1 a 5 no aparecen en conflicto, porque nadie las cambió.
+Estado: igual que en la fila anterior (`cat` sólo lee).
+
+- Entre `<<<<<<< HEAD` y `=======` está **`HEAD`, la rama donde estás parado**: `main`, que ya traía el `grep` de F.
+- Entre `=======` y `>>>>>>> titulo` está lo que viene de `titulo`.
+- Las líneas 1 a 5 no aparecen en conflicto, porque nadie las cambió. Los marcadores ocupan desde la línea 6.
 :::
 
 ::: problem {#xc-2-7 title="Fila 7 · ¿El build? ¿El run? ¿El código?"}
@@ -259,19 +391,48 @@ echo $?
 :::
 
 ::: hint {of="xc-2-7"}
+Estado antes de esta fila:
+
+| `main` | `contar.sh` l. 6 | ¿`COPY datos/`? | `ventas.csv` | `git status --short` | Última imagen |
+|---|---|---|---|---|---|
+| merge F+I | marcadores | sí | 3 `MX` (`MX,1` sin commit) | `UU contar.sh` y ` M datos/ventas.csv` | `rep:1`: `grep` + `datos/` de la fila 3 |
+
 ¿Le importa a `COPY` lo que dice el archivo? ¿Cómo lee bash una línea que empieza con `<<<`?
 :::
 
 ::: answer {of="xc-2-7"}
-- **El build termina bien.** `COPY` copia bytes y no sabe que el archivo tiene marcadores.
-- **El run** imprime:
+- **El build termina bien.**
+- **El run imprime un error de sintaxis de bash.**
+- **`echo $?` da `2`.**
 
-  ```text
-  contar.sh: line 6: syntax error near unexpected token `<<<'
-  contar.sh: line 6: `<<<<<<< HEAD'
-  ```
+Estado después de esta fila (en negritas, lo que cambió):
 
-- **`echo $?` da `2`**, el código con que bash señala un error de sintaxis.
+| `main` | `contar.sh` l. 6 | ¿`COPY datos/`? | `ventas.csv` | `git status --short` | Última imagen |
+|---|---|---|---|---|---|
+| merge F+I | marcadores | sí | 3 `MX` (`MX,1` sin commit) | `UU contar.sh` y ` M datos/ventas.csv` | **`rep:2`: marcadores + `datos/` de la fila 7** |
+
+`COPY` copia bytes y no sabe que el archivo tiene marcadores. Bash sí lo lee, y la línea 6 empieza con `<<<`:
+
+```text
+$ docker run --rm -v "$(pwd)/datos":/r/datos rep:2
+contar.sh: line 6: syntax error near unexpected token `<<<'
+contar.sh: line 6: `<<<<<<< HEAD'
+$ echo $?
+2
+```
+
+`2` es el código con que bash señala un error de sintaxis, y `docker run` lo devuelve tal cual.
+
+`rep:2` también copió tu `datos/` de ese momento, con el `MX,1`. Esto importa en la fila 9:
+
+```text
+$ docker run --rm rep:2 cat datos/ventas.csv
+MX,10
+US,5
+MX,7
+CA,3
+MX,1
+```
 
 Ni Git ni Docker impiden empaquetar un archivo a medio resolver. El único que se queja es bash, y sólo cuando lo corre.
 :::
@@ -287,17 +448,41 @@ Escribe la línea 6 resuelta. ¿Qué muestra después `git status --short`?
 :::
 
 ::: hint {of="xc-2-8"}
-«Los dos cambios» es el texto de uno y el conteo del otro, en una sola línea. ¿Commiteaste el renglón de la fila 4?
+Estado antes de esta fila:
+
+| `main` | `contar.sh` l. 6 | ¿`COPY datos/`? | `ventas.csv` | `git status --short` | Última imagen |
+|---|---|---|---|---|---|
+| merge F+I | marcadores | sí | 3 `MX` (`MX,1` sin commit) | `UU contar.sh` y ` M datos/ventas.csv` | **`rep:2`: marcadores + `datos/` de la fila 7** |
+
+«Los dos cambios» es el texto de uno y el conteo del otro, en una sola línea. ¿Qué pasa con `ventas.csv` si sólo le haces `git add` a `contar.sh`?
 :::
 
 ::: answer {of="xc-2-8"}
+**Línea 6 resuelta:**
+
 ```bash
 printf 'total: %s\n' "$(grep -c MX "$archivo")"
 ```
 
-El texto `total:` de T, con el conteo `grep -c MX` de F. Se borran las tres líneas de marcadores y queda una sola línea 6. `git add` le dice a Git «ya lo resolví», y `git commit` crea el commit de merge.
+**`git status --short` muestra sólo ` M datos/ventas.csv`.**
 
-`git status --short` muestra sólo ` M datos/ventas.csv`: el conflicto quedó resuelto y guardado, y tu renglón extra sigue sin commit.
+Estado después de esta fila (en negritas, lo que cambió):
+
+| `main` | `contar.sh` l. 6 | ¿`COPY datos/`? | `ventas.csv` | `git status --short` | Última imagen |
+|---|---|---|---|---|---|
+| **merge F+I+T** | **`total:` + `grep -c MX`** | sí | 3 `MX` (`MX,1` sin commit) | **` M datos/ventas.csv`** | `rep:2`: marcadores + `datos/` de la fila 7 |
+
+- La línea junta el texto `total:` de T con el conteo `grep -c MX` de F.
+- Se borran las tres líneas de marcadores y queda una sola línea 6.
+- `git add contar.sh` le dice a Git «ya lo resolví», y `git commit` crea el commit de merge.
+- `ventas.csv` no se agregó, así que el `MX,1` sigue sin commit.
+
+```text
+$ git commit
+[main 03d2014] Merge branch 'titulo'
+$ git status --short
+ M datos/ventas.csv
+```
 :::
 
 ::: problem {#xc-2-9 title="Fila 9 · ¿Qué sale de la caché?"}
@@ -307,15 +492,42 @@ docker build -t rep:3 .
 :::
 
 ::: hint {of="xc-2-9"}
-¿Qué archivo cambió desde el último build? Lo que viene después de una capa rehecha se rehace también.
+Estado antes de esta fila:
+
+| `main` | `contar.sh` l. 6 | ¿`COPY datos/`? | `ventas.csv` | `git status --short` | Última imagen |
+|---|---|---|---|---|---|
+| **merge F+I+T** | **`total:` + `grep -c MX`** | sí | 3 `MX` (`MX,1` sin commit) | **` M datos/ventas.csv`** | `rep:2`: marcadores + `datos/` de la fila 7 |
+
+Compara tu disco con el que había al construir `rep:2` en la fila 7. ¿Qué archivo es distinto?
 :::
 
 ::: answer {of="xc-2-9"}
+**Se rehacen los dos `COPY`; `FROM` y `WORKDIR` salen de la caché.**
+
 | Paso | Resultado | Por qué |
 |---|---|---|
-| `FROM`, `WORKDIR /r` | caché | No cambiaron |
-| `COPY contar.sh .` | **se rehace** | `contar.sh` cambió |
-| `COPY datos/ datos/` | **se rehace** | Va después de una capa que cambió, y además `datos/` cambió en la fila 4 |
+| `FROM bash:5.2` | se reutiliza | La imagen base ya está descargada |
+| `WORKDIR /r` | `CACHED` | No cambió, y lo anterior tampoco |
+| `COPY contar.sh .` | **se rehace** | `contar.sh` cambió: en `rep:2` tenía marcadores, ahora está resuelto |
+| `COPY datos/ datos/` | **se rehace** | Va después de una capa que cambió. `datos/` es idéntico al de `rep:2` |
+
+Estado después de esta fila (en negritas, lo que cambió):
+
+| `main` | `contar.sh` l. 6 | ¿`COPY datos/`? | `ventas.csv` | `git status --short` | Última imagen |
+|---|---|---|---|---|---|
+| merge F+I+T | `total:` + `grep -c MX` | sí | 3 `MX` (`MX,1` sin commit) | ` M datos/ventas.csv` | **`rep:3`: resuelto + `datos/` de la fila 9** |
+
+`datos/` **no** cambió desde el último build. El `MX,1` de la fila 4 se agregó antes de la fila 7, así que `rep:2` ya lo tenía (lo muestra el `cat` de la fila 7). `COPY datos/` se rehace sólo porque la capa de antes, `COPY contar.sh`, cambió.
+
+```text
+$ docker build -t rep:3 .
+#6 [2/4] WORKDIR /r
+#6 CACHED
+#7 [3/4] COPY contar.sh .
+#8 [4/4] COPY datos/ datos/
+```
+
+Prueba de que `datos/` no fue la causa: si vuelves a poner en disco el `contar.sh` con marcadores y construyes, los dos `COPY` salen `CACHED`.
 :::
 
 ::: problem {#xc-2-10 title="Fila 10 · ¿total: 2 o total: 3?"}
@@ -327,13 +539,36 @@ docker run --rm rep:3
 :::
 
 ::: hint {of="xc-2-10"}
+Estado antes de esta fila:
+
+| `main` | `contar.sh` l. 6 | ¿`COPY datos/`? | `ventas.csv` | `git status --short` | Última imagen |
+|---|---|---|---|---|---|
+| merge F+I+T | `total:` + `grep -c MX` | sí | 3 `MX` (`MX,1` sin commit) | ` M datos/ventas.csv` | **`rep:3`: resuelto + `datos/` de la fila 9** |
+
 ¿De dónde copia `docker build`: del último commit o de tu disco?
 :::
 
 ::: answer {of="xc-2-10"}
-**`total: 3`.** `docker build` copia **lo que hay en tu disco**, no lo que hay en el último commit. El renglón `MX,1` nunca se commiteó, pero estaba en `datos/ventas.csv` al construir.
+**`total: 3`.**
 
-Ésta es la trampa del ejercicio: una imagen puede contener cambios que nadie más tiene. Otra persona que clone el repo y construya obtiene `total: 2`.
+Estado después de esta fila (en negritas, lo que cambió):
+
+| `main` | `contar.sh` l. 6 | ¿`COPY datos/`? | `ventas.csv` | `git status --short` | Última imagen |
+|---|---|---|---|---|---|
+| merge F+I+T | `total:` + `grep -c MX` | sí | 3 `MX` (`MX,1` sin commit) | ` M datos/ventas.csv` | `rep:3`: resuelto + `datos/` de la fila 9 |
+
+- `docker build` copia **lo que hay en tu disco**, no lo que hay en el último commit.
+- El `MX,1` nunca se commiteó, pero estaba en `datos/ventas.csv` al construir.
+
+Una imagen puede contener cambios que nadie más tiene. Otra persona que clone el repo y construya obtiene `total: 2`:
+
+```text
+$ docker run --rm rep:3
+total: 3
+$ git clone . ../clon && cd ../clon
+$ docker build -t rep:clon . && docker run --rm rep:clon
+total: 2
+```
 :::
 
 ::: problem {#xc-2-11 title="Fila 11 · ¿Cuántos commits de merge?"}
@@ -345,24 +580,37 @@ git log --oneline --graph
 :::
 
 ::: hint {of="xc-2-11"}
+Estado antes de esta fila:
+
+| `main` | `contar.sh` l. 6 | ¿`COPY datos/`? | `ventas.csv` | `git status --short` | Última imagen |
+|---|---|---|---|---|---|
+| merge F+I+T | `total:` + `grep -c MX` | sí | 3 `MX` (`MX,1` sin commit) | ` M datos/ventas.csv` | `rep:3`: resuelto + `datos/` de la fila 9 |
+
 ¿Cuál de los tres merges fue fast-forward?
 :::
 
 ::: answer {of="xc-2-11"}
+**Dos**: el de `imagen` y el de `titulo`.
+
 ```text
-*   Merge branch 'titulo'
+$ git log --oneline --graph
+*   03d2014 Merge branch 'titulo'     <- merge F+I+T
 |\
-| * titulo total
-* |   Merge branch 'imagen'
+| * 0ab1acd titulo total              <- T
+* |   251b255 Merge branch 'imagen'   <- merge F+I
 |\ \
-| * | datos en la imagen
+| * | d21d449 datos en la imagen      <- I
 | |/
-* / solo MX
+* / d0d102a solo MX                   <- F
 |/
-* base
+* e788dc1 base                        <- B
 ```
 
-**Dos**: el de `imagen` y el de `titulo`. `filtro` entró por fast-forward: F quedó en la línea de `main` sin commit de merge, porque no había nada que juntar.
+Los mensajes son los que usamos al crear los commits: «base» es B, «solo MX» es F, «datos en la imagen» es I y «titulo total» es T. Tus mensajes y hashes serán otros. Las flechas `<-` no las imprime Git.
+
+Estado: igual que en la fila anterior (`git log` sólo lee).
+
+`filtro` entró por fast-forward en la fila 1: F quedó en la línea de `main` sin commit de merge, porque no había nada que juntar.
 :::
 
 **Repasa:** [[branches-y-merge]], [[capas-y-cache]] y [[rutas-en-docker]].

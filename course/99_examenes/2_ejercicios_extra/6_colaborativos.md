@@ -11,6 +11,8 @@ prerequisites: [ejercicios-github, ejercicios-docker]
 
 # Ejercicios colaborativos: GitHub y Docker en equipo
 
+**[PDF sin respuestas, para imprimir](../_assets/practica-colaborativos.pdf)** · unos 90 minutos · sin apuntes
+
 En los parciales, una sola persona cambiaba un archivo y seguías qué pasaba. Aquí trabajan **tres a la vez**: Ana, Beto y Caro. Cada quien tiene su clon, su máquina, sus imágenes, sus contenedores y sus volúmenes. Los cambios llegan de una máquina a otra **sólo** a través de GitHub, con `push` y `pull`.
 
 Debajo de cada pregunta hay una **pista** y la **respuesta**, plegadas. Abre la pista sólo si llevas un rato atorado.
@@ -80,18 +82,37 @@ docker run --rm alertas:1
 :::
 
 ::: hint {of="xco1-1"}
-Un `push` actualiza GitHub, y nada más. ¿Hizo Beto algo para recibirlo? ¿Reconstruyó Ana su imagen?
+Estado antes de la fila 1:
+
+| | GitHub | Ana | Beto | Caro |
+|---|---|---|---|---|
+| Último commit de `main` | `B` | `B` | `B` | `B` |
+| `config.env` | `5` | `5` | `5` | `5` |
+| Imagen `alertas:1` | · | build de `B` | build de `B` | build de `B` |
+| Contenedor `alerta` | · | nació de `B` | nació de `B` | nació de `B` |
+
+Un `push` actualiza GitHub. ¿Qué celda de la tabla cambia con un `build`, y lo corrió Ana?
 :::
 
 ::: answer {of="xco1-1"}
-| GitHub | Clon de Ana | Clon de Beto | Imagen de Ana |
-|---|---|---|---|
-| **10** | 10 | **5** | **5** |
+**GitHub: 10. Clon de Beto: 5. Imagen de Ana: 5. El run imprime `umbral: 5`.**
 
-El run de Ana imprime **`umbral: 5`**.
+Estado después de la fila 1:
 
-- El push sube el commit a GitHub. **No llega** a nadie más: Beto y Caro lo reciben sólo cuando hagan `pull`.
-- La imagen de Ana se construyó con el 5. Commitear y subir no reconstruye nada: la imagen sólo cambia con un `docker build`.
+| | GitHub | Ana | Beto | Caro |
+|---|---|---|---|---|
+| Último commit de `main` | **«umbral 10»** | **«umbral 10»** | `B` | `B` |
+| `config.env` | **`10`** | **`10`** | `5` | `5` |
+| Imagen `alertas:1` | · | build de `B` | build de `B` | build de `B` |
+| Contenedor `alerta` | · | nació de `B` | nació de `B` | nació de `B` |
+
+- El push copia el commit a GitHub y a nada más. Beto y Caro lo reciben sólo cuando hagan `pull`.
+- La imagen de Ana sigue siendo el build de `B`. Commitear y subir no reconstruye: la imagen sólo cambia con `docker build`.
+
+```text
+$ docker run --rm alertas:1
+umbral: 5
+```
 :::
 
 ::: problem {#xco1-2 title="Fila 2 · Ana reconstruye"}
@@ -106,12 +127,34 @@ docker exec alerta sh alerta.sh
 :::
 
 ::: hint {of="xco1-2"}
-El run crea un contenedor nuevo de la imagen recién construida. ¿Y el contenedor `alerta`, cuándo nació?
+Estado antes de la fila 2:
+
+| | GitHub | Ana | Beto | Caro |
+|---|---|---|---|---|
+| Último commit de `main` | **«umbral 10»** | **«umbral 10»** | `B` | `B` |
+| `config.env` | **`10`** | **`10`** | `5` | `5` |
+| Imagen `alertas:1` | · | build de `B` | build de `B` | build de `B` |
+| Contenedor `alerta` | · | nació de `B` | nació de `B` | nació de `B` |
+
+¿De qué build nace el contenedor del `run`? ¿Y de cuál nació `alerta`?
 :::
 
 ::: answer {of="xco1-2"}
-- **run: `umbral: 10`.** La imagen nueva copió el `config.env` de su disco.
-- **exec: `umbral: 5`.** El contenedor `alerta` nació de la imagen **vieja**, y reconstruir una imagen no cambia los contenedores que ya existen. Ana tiene ahora dos versiones corriendo en su propia máquina.
+**run: `umbral: 10`. exec: `umbral: 5`.**
+
+Estado después de la fila 2:
+
+| | GitHub | Ana | Beto | Caro |
+|---|---|---|---|---|
+| Último commit de `main` | «umbral 10» | «umbral 10» | `B` | `B` |
+| `config.env` | `10` | `10` | `5` | `5` |
+| Imagen `alertas:1` | · | **build de «umbral 10»** | build de `B` | build de `B` |
+| Contenedor `alerta` | · | nació de `B` | nació de `B` | nació de `B` |
+
+- El run crea un contenedor nuevo de la imagen recién construida, que copió el `config.env` del disco (10).
+- El exec entra a `alerta`, que nació de la imagen de `B`. Reconstruir una imagen no cambia los contenedores que ya existen.
+
+Ana tiene ahora en su máquina dos versiones: su imagen (10) y su contenedor `alerta` (5).
 :::
 
 ::: problem {#xco1-3 title="Fila 3 · Beto, sin haber hecho pull"}
@@ -133,13 +176,41 @@ hint: Updates were rejected because the remote contains work that you do
 :::
 
 ::: hint {of="xco1-3"}
-GitHub tiene un commit (el de Ana) que la máquina de Beto no tiene. ¿Y de dónde copia el build: de GitHub o del disco de Beto?
+Estado antes de la fila 3:
+
+| | GitHub | Ana | Beto | Caro |
+|---|---|---|---|---|
+| Último commit de `main` | «umbral 10» | «umbral 10» | `B` | `B` |
+| `config.env` | el de la fila 1 | `10` | `5` | `5` |
+| Imagen `alertas:1` | · | **build de «umbral 10»** | build de `B` | build de `B` |
+| Contenedor `alerta` | · | nació de `B` | nació de `B` | nació de `B` |
+
+¿Qué commit tiene GitHub que Beto no tiene? ¿De dónde copia el build: de GitHub o del disco de Beto?
 :::
 
 ::: answer {of="xco1-3"}
-- **Rechazado** porque GitHub tiene el commit de Ana y Beto no. Si Git aceptara, el commit de Ana desaparecería de `main`. Git obliga a **integrar primero**.
-- En GitHub sigue **`UMBRAL=10`**: el push no entró.
-- El run imprime **`umbral: 20`**. El build copia **el disco de Beto**, no GitHub. Beto tiene una imagen con un valor que no existe en ningún otro lado.
+**Rechazado. GitHub sigue en `UMBRAL=10`. El run de Beto imprime `umbral: 20`.**
+
+Estado después de la fila 3:
+
+| | GitHub | Ana | Beto | Caro |
+|---|---|---|---|---|
+| Último commit de `main` | «umbral 10» | «umbral 10» | **«umbral 20» (sin subir)** | `B` |
+| `config.env` | `10` | `10` | **`20`** | `5` |
+| Imagen `alertas:1` | · | build de «umbral 10» | **build de «umbral 20»** | build de `B` |
+| Contenedor `alerta` | · | nació de `B` | nació de `B` | nació de `B` |
+
+Las dos historias salieron de `B` y ya no son una la continuación de la otra. Con `D` = «umbral 10» (Ana) y `V` = «umbral 20» (Beto):
+
+```text
+B---D      main en GitHub
+ \
+  V        main de Beto
+```
+
+- GitHub tiene `D` y Beto no. Si Git aceptara el push, `main` en GitHub pasaría a `B---V` y `D` desaparecería. Git obliga a **integrar primero**.
+- El push no entró, así que GitHub sigue en `D` (10).
+- El build copia **el disco de Beto** (20), no GitHub. Beto tiene una imagen con un valor que no existe en ningún otro lado.
 :::
 
 ::: problem {#xco1-4 title="Fila 4 · Caro se pone al día"}
@@ -154,13 +225,33 @@ docker run --rm -v "$(pwd)/config.env":/app/config.env alertas:1
 :::
 
 ::: hint {of="xco1-4"}
-¿Tenía Caro commits propios? ¿Reconstruyó su imagen? ¿Qué tapa un montaje?
+Estado antes de la fila 4:
+
+| | GitHub | Ana | Beto | Caro |
+|---|---|---|---|---|
+| Último commit de `main` | «umbral 10» | «umbral 10» | **«umbral 20» (sin subir)** | `B` |
+| `config.env` | `10` | `10` | **`20`** | `5` |
+| Imagen `alertas:1` | · | build de «umbral 10» | **build de «umbral 20»** | build de `B` |
+| Contenedor `alerta` | · | nació de `B` | nació de `B` | nació de `B` |
+
+¿Tiene Caro commits que GitHub no tenga? ¿Qué celdas de Caro puede cambiar un `pull`, y cuáles no? ¿Qué tapa un montaje?
 :::
 
 ::: answer {of="xco1-4"}
-- **El pull es un fast-forward.** Caro no tenía commits propios, así que su `main` sólo avanza hasta el commit de Ana. Su disco dice ahora `UMBRAL=10`.
-- **Primer run: `umbral: 5`.** Su imagen sigue siendo la del principio: un pull no reconstruye.
-- **Segundo run: `umbral: 10`.** El montaje tapa el `config.env` de la imagen con el de su disco.
+**El pull es un fast-forward. Primer run: `umbral: 5`. Segundo run: `umbral: 10`.**
+
+Estado después de la fila 4:
+
+| | GitHub | Ana | Beto | Caro |
+|---|---|---|---|---|
+| Último commit de `main` | «umbral 10» | «umbral 10» | «umbral 20» (sin subir) | **«umbral 10»** |
+| `config.env` | `10` | `10` | `20` | **`10`** |
+| Imagen `alertas:1` | · | build de «umbral 10» | build de «umbral 20» | build de `B` |
+| Contenedor `alerta` | · | nació de `B` | nació de `B` | nació de `B` |
+
+- Caro no tenía commits propios, así que su `main` sólo avanza hasta «umbral 10». Git lo dice: `Fast-forward`.
+- El primer run usa su imagen, que sigue siendo el build de `B`: un pull no reconstruye.
+- El segundo run monta su `config.env` del disco (10) encima del de la imagen.
 
 Mismo commit en el disco, dos resultados distintos según **cómo** corra el contenedor.
 :::
@@ -182,24 +273,52 @@ Automatic merge failed; fix conflicts and then commit the result.
 :::
 
 ::: hint {of="xco1-5"}
-Los dos cambiaron la misma línea desde B. `HEAD` es el lado de Beto. El contenedor `alerta` y la imagen se construyeron antes de este pull.
+Estado antes de la fila 5:
+
+| | GitHub | Ana | Beto | Caro |
+|---|---|---|---|---|
+| Último commit de `main` | «umbral 10» | «umbral 10» | «umbral 20» (sin subir) | **«umbral 10»** |
+| `config.env` | `10` | `10` | `20` | **`10`** |
+| Imagen `alertas:1` | · | build de «umbral 10» | build de la fila 3 | build de `B` |
+| Contenedor `alerta` | · | nació de `B` | nació de `B` | nació de `B` |
+
+Los dos cambiaron la misma línea desde `B`. ¿Qué celdas toca un `pull`? ¿Cuáles se construyeron antes?
 :::
 
 ::: answer {of="xco1-5"}
+**`config.env` queda con marcadores. exec: `umbral: 5`. run: `umbral: 20`.**
+
+Estado después de la fila 5:
+
+| | GitHub | Ana | Beto | Caro |
+|---|---|---|---|---|
+| Último commit de `main` | «umbral 10» | «umbral 10» | **«umbral 20», merge a medias** | «umbral 10» |
+| `config.env` | `10` | `10` | **marcadores 20/10** | `10` |
+| Imagen `alertas:1` | · | build de «umbral 10» | build de «umbral 20» | build de `B` |
+| Contenedor `alerta` | · | nació de `B` | nació de `B` | nació de `B` |
+
+El archivo en el disco de Beto (salida real):
+
 ```text
 <<<<<<< HEAD
 UMBRAL=20
 =======
 UMBRAL=10
->>>>>>> 635d1a8
+>>>>>>> 7624c311a90082e87f22ea92fd5ed4d1037efa0b
 ```
 
-`HEAD` es lo de Beto (el 20), y abajo lo que llegó de GitHub (el 10 de Ana). En lugar de un nombre de rama, Git pone el hash del commit que trajo. `git status --short` lo marca `UU config.env`.
+- Arriba de `=======` está `HEAD`: el commit de Beto (20).
+- Abajo está lo que llegó de GitHub: el 10 de Ana.
+- El hash después de `>>>>>>>` es el del commit «umbral 10» que el pull trajo. Con `git pull origin main` Git no pone un nombre de rama sino ese hash completo. `git log --oneline origin/main` lo muestra abreviado: `7624c31 umbral 10`. En tu máquina el hash será otro, porque depende del autor y de la fecha del commit.
+- `git status --short` marca el archivo `UU config.env`: el merge no se ha terminado.
+- Sale un merge con marcadores, y no otra cosa, porque el curso configuró `git config --global pull.rebase false` ([[clonar-y-actualizar]]).
 
-- **exec: `umbral: 5`.** El contenedor `alerta` nació al principio.
-- **run: `umbral: 20`.** La imagen es la que Beto construyó en la fila 3.
+Los contenedores no se enteran:
 
-Ninguno de los dos ve el conflicto: está **sólo en el disco**.
+- El exec entra a `alerta`, que nació de `B`.
+- El run usa la imagen que Beto construyó en la fila 3 (20).
+
+El conflicto está **sólo en el disco**.
 :::
 
 ::: problem {#xco1-6 title="Fila 6 · Beto «termina»"}
@@ -217,22 +336,51 @@ Beto no editó el archivo. ¿Git acepta el commit? ¿El build termina bien? ¿Qu
 :::
 
 ::: hint {of="xco1-6"}
-Para Git, `git add` significa «ya lo resolví», sin revisar el contenido. ¿Le importa a `COPY` lo que dice el archivo? ¿Qué hace `sh` al cargar una línea que empieza con `<<<`?
+Estado antes de la fila 6:
+
+| | GitHub | Ana | Beto | Caro |
+|---|---|---|---|---|
+| Último commit de `main` | «umbral 10» | «umbral 10» | **«umbral 20», merge a medias** | «umbral 10» |
+| `config.env` | `10` | `10` | **marcadores 20/10** | `10` |
+| Imagen `alertas:1` | · | build de «umbral 10» | build de «umbral 20» | build de `B` |
+| Contenedor `alerta` | · | nació de `B` | nació de `B` | nació de `B` |
+
+¿Revisa `git add` el contenido del archivo? ¿Le importa a `COPY`? ¿Qué hace `sh` con una línea que empieza con `<<<`?
 :::
 
 ::: answer {of="xco1-6"}
-- **El commit se acepta.** `git add` le dice a Git que el conflicto está resuelto, y Git le cree: no revisa si quedaron marcadores.
-- **El build termina bien.** `COPY` copia bytes.
-- **El run truena:**
+**Git acepta el commit. El build termina bien. El run truena y `echo $?` da 2. GitHub acepta el push.**
 
-  ```text
-  alerta.sh: ./config.env: line 1: syntax error: unexpected redirection
-  ```
+Estado después de la fila 6:
 
-  `echo $?` da **2**: `sh` intentó leer `<<<<<<<` como una redirección.
-- **El push se acepta.** Ahora el `main` de Beto contiene el commit de Ana, así que subir ya no borra nada. GitHub no revisa contenido: **el archivo roto ya está en `main`**.
+| | GitHub | Ana | Beto | Caro |
+|---|---|---|---|---|
+| Último commit de `main` | **«listo»** | «umbral 10» | **«listo»** | «umbral 10» |
+| `config.env` | **marcadores 20/10** | `10` | marcadores 20/10 | `10` |
+| Imagen `alertas:1` | · | build de «umbral 10» | **build de «listo»** | build de `B` |
+| Contenedor `alerta` | · | nació de `B` | nació de `B` | nació de `B` |
 
-Beto tuvo tres avisos y no miró ninguno: el `CONFLICT`, el `UU` y su propio contenedor tronando.
+- `git add` le dice a Git que el conflicto está resuelto. Git no revisa si quedaron marcadores.
+- `COPY` copia bytes sin leerlos, así que el build no falla.
+- `sh` carga `config.env` y lee `<<<<<<<` como una redirección: código 2.
+- El push entra porque el `main` de Beto ya contiene `D`: subir no borra nada.
+
+```text
+$ docker run --rm alertas:1
+alerta.sh: ./config.env: line 1: syntax error: unexpected redirection
+$ echo $?
+2
+```
+
+La historia, con `M` = «listo»:
+
+```text
+B---V---M      main de Beto y main en GitHub
+ \     /
+  D----
+```
+
+GitHub no revisa contenido: **el archivo roto ya está en `main`**. Beto tuvo tres avisos y no miró ninguno: el `CONFLICT`, el `UU` y su propio contenedor tronando.
 :::
 
 ::: problem {#xco1-7 title="Fila 7 · Caro vuelve a ponerse al día"}
@@ -247,13 +395,37 @@ docker run --rm -v "$(pwd)/config.env":/app/config.env alertas:1
 :::
 
 ::: hint {of="xco1-7"}
-Caro sigue sin commits propios. ¿Qué trae ahora `main` en su `config.env`?
+Estado antes de la fila 7:
+
+| | GitHub | Ana | Beto | Caro |
+|---|---|---|---|---|
+| Último commit de `main` | **«listo»** | «umbral 10» | **«listo»** | «umbral 10» |
+| `config.env` | **marcadores 20/10** | `10` | marcadores 20/10 | `10` |
+| Imagen `alertas:1` | · | build de «umbral 10» | **build de «listo»** | build de `B` |
+| Contenedor `alerta` | · | nació de `B` | nació de `B` | nació de `B` |
+
+¿Tiene Caro commits propios? ¿Qué trae ahora `main` en `config.env`? ¿Qué copia usa cada run?
 :::
 
 ::: answer {of="xco1-7"}
-- **El pull es otro fast-forward**: le trae el commit «listo» con los marcadores. Caro no hizo nada mal, y aun así su disco tiene el archivo roto.
-- **Primer run: `umbral: 5`.** Su imagen sigue siendo la del principio, y por eso **parece que todo funciona**.
-- **Segundo run: truena**, con el mismo `syntax error` y código 2, porque ahora monta el archivo con marcadores.
+**Fast-forward. Primer run: `umbral: 5`. Segundo run: truena con código 2.**
+
+Estado después de la fila 7:
+
+| | GitHub | Ana | Beto | Caro |
+|---|---|---|---|---|
+| Último commit de `main` | «listo» | «umbral 10» | «listo» | **«listo»** |
+| `config.env` | marcadores 20/10 | `10` | marcadores 20/10 | **marcadores 20/10** |
+| Imagen `alertas:1` | · | build de «umbral 10» | build de «listo» | build de `B` |
+| Contenedor `alerta` | · | nació de `B` | nació de `B` | nació de `B` |
+
+- Caro sigue sin commits propios: su `main` avanza de «umbral 10» a «listo». Caro no hizo nada mal, y aun así su disco tiene el archivo roto.
+- El primer run usa su imagen, el build de `B`. Por eso **parece que todo funciona**.
+- El segundo run monta el archivo con marcadores y truena con el mismo error:
+
+```text
+alerta.sh: ./config.env: line 1: syntax error: unexpected redirection
+```
 
 Si Caro sólo probara sin montaje, tardaría en descubrirlo. Si reconstruye, su imagen también queda rota.
 :::
@@ -275,12 +447,34 @@ docker run --rm alertas:1
 :::
 
 ::: hint {of="xco1-8"}
-¿Tenía Ana commits que GitHub no tuviera?
+Estado antes de la fila 8:
+
+| | GitHub | Ana | Beto | Caro |
+|---|---|---|---|---|
+| Último commit de `main` | «listo» | «umbral 10» | «listo» | **«listo»** |
+| `config.env` | marcadores 20/10 | `10` | marcadores 20/10 | **marcadores 20/10** |
+| Imagen `alertas:1` | · | build de «umbral 10» | build de «listo» | build de `B` |
+| Contenedor `alerta` | · | nació de `B` | nació de `B` | nació de `B` |
+
+¿Tiene Ana commits que GitHub no tenga?
 :::
 
 ::: answer {of="xco1-8"}
-- **El pull es un fast-forward**: Ana no tenía commits nuevos. Le trae el archivo con marcadores, y ella lo reemplaza completo.
-- **El run imprime `umbral: 15`.** `main` en GitHub vuelve a estar sano.
+**El pull es un fast-forward. El run imprime `umbral: 15`.**
+
+Estado después de la fila 8:
+
+| | GitHub | Ana | Beto | Caro |
+|---|---|---|---|---|
+| Último commit de `main` | **«umbral acordado 15»** | **«umbral acordado 15»** | «listo» | «listo» |
+| `config.env` | **`15`** | **`15`** | marcadores 20/10 | marcadores 20/10 |
+| Imagen `alertas:1` | · | **build de «umbral acordado 15»** | build de «listo» | build de `B` |
+| Contenedor `alerta` | · | nació de `B` | nació de `B` | nació de `B` |
+
+- Ana no tenía commits nuevos: su `main` avanza a «listo» y su disco recibe los marcadores.
+- `echo "UMBRAL=15" > config.env` reemplaza el archivo completo, marcadores incluidos.
+- El push entra sin rechazo, porque Ana partió del último commit de GitHub. `main` en GitHub vuelve a estar sano.
+- El build copia el disco (15).
 :::
 
 ::: problem {#xco1-9 title="Fila 9 · La foto final"}
@@ -301,24 +495,34 @@ Nadie más hace nada. Llena la tabla con lo que dice cada lugar: un número, «m
 :::
 
 ::: hint {of="xco1-9"}
-Recorre fila por fila quién hizo `pull` después de la fila 8, quién reconstruyó y quién recreó su contenedor. Los contenedores `alerta` nacieron al principio y nadie los tocó.
+Estado antes de la fila 9 (nadie hace nada más, así que es también el final):
+
+| | GitHub | Ana | Beto | Caro |
+|---|---|---|---|---|
+| Último commit de `main` | **«umbral acordado 15»** | **«umbral acordado 15»** | «listo» | «listo» |
+| Imagen `alertas:1` | · | build de la fila 8 | build de la fila 6 | build del inicio |
+| Contenedor `alerta` | · | del inicio | del inicio | del inicio |
+
+Traduce cada celda: ¿qué valor tenía el disco en el commit de cada build? ¿De qué build nació cada `alerta`?
 :::
 
 ::: answer {of="xco1-9"}
+Estado: igual que en la fila 8.
+
 | Lugar | ¿Qué dice? | Por qué |
 |---|---|---|
-| `main` en GitHub | **15** | El arreglo de Ana |
-| Disco de Ana | **15** | Lo escribió ella |
-| Disco de Beto | **marcadores** | No ha hecho pull desde su commit roto |
-| Disco de Caro | **marcadores** | Su último pull fue el de la fila 7 |
-| Imagen de Ana | **15** | Reconstruyó en la fila 8 |
-| Imagen de Beto | **truena** | La construyó con marcadores en la fila 6 |
-| Imagen de Caro | **5** | Nunca reconstruyó |
-| Contenedor `alerta` de Ana | **5** | Nació al principio |
-| Contenedor `alerta` de Beto | **5** | Nació al principio |
-| Contenedor `alerta` de Caro | **5** | Nació al principio |
+| `main` en GitHub | 15 | El arreglo de Ana |
+| Disco de Ana | 15 | Lo escribió ella |
+| Disco de Beto | marcadores | No ha hecho pull desde su commit roto |
+| Disco de Caro | marcadores | Su último pull fue el de la fila 7 |
+| Imagen de Ana | 15 | Reconstruyó en la fila 8 |
+| Imagen de Beto | truena | La construyó con marcadores en la fila 6 |
+| Imagen de Caro | 5 | Nunca reconstruyó |
+| Contenedor `alerta` de Ana | 5 | Nació al principio |
+| Contenedor `alerta` de Beto | 5 | Nació al principio |
+| Contenedor `alerta` de Caro | 5 | Nació al principio |
 
-**Cuatro valores distintos para la misma variable**, y el único que GitHub considera correcto (15) sólo vive en la máquina de Ana. Comprobado: cuando Beto por fin hace pull y reconstruye, su imagen da 15, pero su contenedor `alerta` sigue en 5 hasta que lo borre y lo cree otra vez.
+**Cuatro valores distintos para la misma variable**, y el que está en GitHub (15), fuera de GitHub, sólo lo tiene la imagen de Ana. Si Beto hace pull y reconstruye, su imagen da 15, pero su contenedor `alerta` sigue en 5 hasta que lo borre y lo cree otra vez.
 :::
 
 ### Diagnóstico y prácticas
@@ -330,7 +534,7 @@ Aquí no se piden comandos: se pide entender qué falló y qué costumbre del eq
 :::
 
 ::: hint {of="xco1-d1"}
-Busca la fila donde GitHub aceptó un commit con marcadores. Luego cuenta los avisos que Beto vio y no atendió.
+¿En qué fila aceptó GitHub un commit con marcadores? ¿Cuántos avisos vio Beto antes?
 :::
 
 ::: answer {of="xco1-d1"}
@@ -348,7 +552,7 @@ Al final hay cuatro valores distintos de `UMBRAL` en el equipo. Explica las **tr
 :::
 
 ::: hint {of="xco1-d2"}
-Piensa en las tres copias que separan a GitHub de lo que imprime un contenedor: el disco, la imagen y el contenedor.
+¿Cuántas copias hay entre GitHub y lo que imprime un contenedor?
 :::
 
 ::: answer {of="xco1-d2"}
@@ -366,7 +570,7 @@ Sin escribir comandos: ¿qué cuatro o cinco costumbres de equipo habrían evita
 :::
 
 ::: hint {of="xco1-d3"}
-Repasa las filas 3, 5, 6, 7 y 9, y pregúntate en cada una qué debió pasar antes.
+Repasa las filas 3, 5, 6, 7 y 9: ¿qué debió pasar antes de cada una?
 :::
 
 ::: answer {of="xco1-d3"}
@@ -374,13 +578,13 @@ Cualquiera de éstas, bien ligada a una fila, vale:
 
 | Práctica | Qué habría cambiado |
 |---|---|
-| **Ponerse al día antes de empezar a trabajar** | Beto habría partido del 10 de Ana: no habría habido rechazo ni conflicto (filas 3 y 5) |
-| **Ramas y pull requests en vez de subir directo a `main`** | El commit roto se habría quedado en una rama, y otra persona lo habría visto antes de que llegara a Caro (filas 6 y 7) |
-| **Revisar un conflicto antes de declararlo resuelto**: abrir el archivo, buscar marcadores, preguntar al autor del otro cambio cuál valor gana | Beto no habría commiteado marcadores (fila 6) |
-| **Probar antes de subir**, y mejor aún, una revisión automática que construya la imagen y la **arranque** en cada pull request | El código 2 habría bloqueado el merge (fila 6) |
-| **La configuración afuera de la imagen**: montada o por variable de entorno | Cambiar un número no exigiría reconstruir ni dejaría imágenes con valores distintos (filas 2, 4 y 9) |
-| **Nombrar la imagen con el commit del que salió**, en lugar de `alertas:1` siempre, **y recrear los contenedores** al actualizar | Cualquiera sabría qué versión corre cada contenedor (fila 9) |
-| **Acordar quién decide un valor compartido** antes de que dos personas lo cambien | El 10 contra el 20 era un desacuerdo de personas, no de Git |
+| **Ponerse al día antes de trabajar** | Beto habría partido del 10 de Ana: sin rechazo ni conflicto (filas 3 y 5) |
+| **Ramas y pull requests** | El commit roto se queda en una rama y alguien lo ve antes de que llegue a Caro (filas 6 y 7) |
+| **Revisar el conflicto** | Abrir el archivo, buscar marcadores y preguntar qué valor gana: Beto no commitea marcadores (fila 6) |
+| **Probar antes de subir** | Una revisión automática que construya y **arranque** la imagen en cada pull request: el código 2 bloquea el merge (fila 6) |
+| **Configuración fuera de la imagen** | Montada o por variable de entorno: cambiar un número no exige reconstruir (filas 2, 4 y 9) |
+| **Imagen con el commit en el nombre** | En lugar de `alertas:1` siempre, y recreando contenedores: se sabe qué versión corre cada uno (fila 9) |
+| **Acordar quién decide un valor** | El 10 contra el 20 era un desacuerdo de personas, no de Git |
 :::
 
 ## Ejercicio 2 · La base de datos
@@ -444,13 +648,39 @@ docker exec db psql -U postgres -c '\dt'
 :::
 
 ::: hint {of="xco2-1"}
-¿Está vacío el volumen `datos` de Ana? `docker rm` borra el contenedor; ¿borra el volumen?
+Estado antes de la fila 1. «inicial» es el commit con `001`. En la fila «Ramas», GitHub lista sus ramas; cada persona, la rama en la que está:
+
+| | GitHub | Ana | Beto | Caro |
+|---|---|---|---|---|
+| Último commit de `main` | «inicial» | «inicial» | «inicial» | «inicial» |
+| Ramas | `main` | en `main` | en `main` | en `main` |
+| `sql/` (lo que monta `$(pwd)/sql`) | `001` | `001` | `001` | `001` |
+| Contenedor `db` | · | encendido, inicio | encendido, inicio | encendido, inicio |
+| Volumen `datos` | · | inicio: `001` | inicio: `001` | inicio: `001` |
+
+¿`docker rm` borra el volumen? ¿Cuándo corre Postgres los scripts?
 :::
 
 ::: answer {of="xco2-1"}
-**Sólo `clientes`.** El volumen `datos` ya tenía una base, porque `docker rm` no borra volúmenes. Postgres se salta **todos** los scripts, incluido el nuevo `002_ventas.sql`, aunque esté montado ahí mismo.
+**Sólo `clientes`.**
 
-Comprobado: en los registros del contenedor (`docker logs db`) aparece *Skipping initialization*.
+Estado después de la fila 1:
+
+| | GitHub | Ana | Beto | Caro |
+|---|---|---|---|---|
+| Último commit de `main` | «inicial» | «inicial» | «inicial» | «inicial» |
+| Ramas | **`main`, `ventas`** | **en `ventas`** | en `main` | en `main` |
+| `sql/` (lo que monta `$(pwd)/sql`) | `001` | **`001`, `002`** | `001` | `001` |
+| Contenedor `db` | · | **encendido, fila 1** | encendido, inicio | encendido, inicio |
+| Volumen `datos` | · | inicio: `001` | inicio: `001` | inicio: `001` |
+
+- `docker rm` borra el contenedor, no el volumen.
+- El volumen `datos` ya tenía una base, así que Postgres se salta **todos** los scripts, incluido el nuevo `002_ventas.sql`, aunque esté montado ahí mismo.
+
+```text
+$ docker logs db
+PostgreSQL Database directory appears to contain a database; Skipping initialization
+```
 :::
 
 ::: problem {#xco2-2 title="Fila 2 · Ana prueba con un volumen nuevo"}
@@ -466,13 +696,45 @@ docker exec db psql -U postgres -c '\dt'
 :::
 
 ::: hint {of="xco2-2"}
-Con el volumen borrado, el siguiente `run` crea uno nuevo y vacío.
+Estado antes de la fila 2:
+
+| | GitHub | Ana | Beto | Caro |
+|---|---|---|---|---|
+| Último commit de `main` | «inicial» | «inicial» | «inicial» | «inicial» |
+| Ramas | **`main`, `ventas`** | **en `ventas`** | en `main` | en `main` |
+| `sql/` (lo que monta `$(pwd)/sql`) | `001` | **`001`, `002`** | `001` | `001` |
+| Contenedor `db` | · | **encendido, fila 1** | encendido, inicio | encendido, inicio |
+| Volumen `datos` | · | inicio: `001` | inicio: `001` | inicio: `001` |
+
+Con el volumen borrado, ¿cómo llega el siguiente `run` a `datos`?
 :::
 
 ::: answer {of="xco2-2"}
-**`clientes` y `ventas`.** El volumen es nuevo, así que corren `001` y `002`, en ese orden.
+**`clientes` y `ventas`. Perdió todo lo que tenía su base anterior.**
 
-**Perdió** todos los datos que tuviera en su base anterior: `docker volume rm` no tiene papelera. Satisfecha, Ana abre su pull request **#1** desde `ventas`.
+Estado después de la fila 2:
+
+| | GitHub | Ana | Beto | Caro |
+|---|---|---|---|---|
+| Último commit de `main` | «inicial» | «inicial» | «inicial» | «inicial» |
+| Ramas | `main`, `ventas` | en `ventas` | en `main` | en `main` |
+| `sql/` (lo que monta `$(pwd)/sql`) | `001` | `001`, `002` | `001` | `001` |
+| Contenedor `db` | · | **encendido, fila 2** | encendido, inicio | encendido, inicio |
+| Volumen `datos` | · | **fila 2: `001`, `002`** | inicio: `001` | inicio: `001` |
+
+- `docker volume rm` borra el volumen y no tiene papelera.
+- El `run` crea un volumen nuevo y vacío, así que corren `001` y `002`, en ese orden.
+
+```text
+          List of relations
+ Schema |   Name   | Type  |  Owner   
+--------+----------+-------+----------
+ public | clientes | table | postgres
+ public | ventas   | table | postgres
+(2 rows)
+```
+
+Satisfecha, Ana abre su pull request **#1** desde `ventas`.
 :::
 
 ::: problem {#xco2-3 title="Fila 3 · Beto agrega reportes, en su rama"}
@@ -496,11 +758,45 @@ docker exec db psql -U postgres -c '\dt'
 :::
 
 ::: hint {of="xco2-3"}
-¿Existe el `002_ventas.sql` de Ana en la rama de Beto?
+Estado antes de la fila 3:
+
+| | GitHub | Ana | Beto | Caro |
+|---|---|---|---|---|
+| Último commit de `main` | «inicial» | «inicial» | «inicial» | «inicial» |
+| Ramas | `main`, `ventas` | en `ventas` | en `main` | en `main` |
+| `sql/` (lo que monta `$(pwd)/sql`) | `001` | `001`, `002` | `001` | `001` |
+| Contenedor `db` | · | **encendido, fila 2** | encendido, inicio | encendido, inicio |
+| Volumen `datos` | · | **fila 2: `001`, `002`** | inicio: `001` | inicio: `001` |
+
+¿De qué commit nace `reportes`? ¿Está `002_ventas.sql` en la carpeta que monta Beto?
 :::
 
 ::: answer {of="xco2-3"}
-**`clientes` y `ventas`.** Pero **su** `ventas` tiene las columnas `mes` y `total`. Su rama nació antes del trabajo de Ana, así que en su disco no existe `002_ventas.sql`. En su máquina todo funciona, y abre su pull request **#2** desde `reportes`.
+**`clientes` y `ventas`, pero su `ventas` tiene las columnas `mes` y `total`.**
+
+Estado después de la fila 3:
+
+| | GitHub | Ana | Beto | Caro |
+|---|---|---|---|---|
+| Último commit de `main` | «inicial» | «inicial» | «inicial» | «inicial» |
+| Ramas | **`main`, `ventas`, `reportes`** | en `ventas` | **en `reportes`** | en `main` |
+| `sql/` (lo que monta `$(pwd)/sql`) | `001` | `001`, `002` | **`001`, `003`** | `001` |
+| Contenedor `db` | · | encendido, fila 2 | **encendido, fila 3** | encendido, inicio |
+| Volumen `datos` | · | fila 2: `001`, `002` | **fila 3: `001`, `003`** | inicio: `001` |
+
+- `reportes` nació de «inicial», antes del trabajo de Ana. En el disco de Beto no existe `002_ventas.sql`.
+- Su volumen es nuevo: corren `001` y `003`, y el `003` crea **su** `ventas`.
+
+```text
+$ docker exec db psql -U postgres -c '\d ventas'
+               Table "public.ventas"
+ Column |  Type   | Collation | Nullable | Default 
+--------+---------+-----------+----------+---------
+ mes    | text    |           | not null | 
+ total  | numeric |           |          | 
+```
+
+En su máquina todo funciona, y abre su pull request **#2** desde `reportes`.
 :::
 
 ::: problem {#xco2-4 title="Fila 4 · Se mergean los dos pull requests"}
@@ -508,13 +804,45 @@ En GitHub alguien mergea el #1 y luego el #2. ¿Hay conflicto? ¿Por qué? ¿Qu�
 :::
 
 ::: hint {of="xco2-4"}
-Git compara líneas de archivos. ¿Tocaron Ana y Beto algún archivo en común?
+Estado antes de la fila 4:
+
+| | GitHub | Ana | Beto | Caro |
+|---|---|---|---|---|
+| Último commit de `main` | «inicial» | «inicial» | «inicial» | «inicial» |
+| Ramas | **`main`, `ventas`, `reportes`** | en `ventas` | **en `reportes`** | en `main` |
+| `sql/` (lo que monta `$(pwd)/sql`) | `001` | `001`, `002` | **`001`, `003`** | `001` |
+| Contenedor `db` | · | encendido, fila 2 | **encendido, fila 3** | encendido, inicio |
+| Volumen `datos` | · | fila 2: `001`, `002` | **fila 3: `001`, `003`** | inicio: `001` |
+
+¿Tocaron Ana y Beto algún archivo en común?
 :::
 
 ::: answer {of="xco2-4"}
-**Sin conflicto.** Ana creó `002_ventas.sql` y Beto creó `003_ventas_mensuales.sql`: **archivos distintos**, así que no hay ninguna línea que Git tenga que elegir. Comprobado: el segundo merge sale con un commit de merge normal.
+**Sin conflicto. En `main` quedan `001_clientes.sql`, `002_ventas.sql` y `003_ventas_mensuales.sql`.**
 
-En `main` quedan `001_clientes.sql`, `002_ventas.sql` y `003_ventas_mensuales.sql`.
+Estado después de la fila 4:
+
+| | GitHub | Ana | Beto | Caro |
+|---|---|---|---|---|
+| Último commit de `main` | **«merge #2»** | «inicial» | «inicial» | «inicial» |
+| Ramas | `main`, `ventas`, `reportes` | en `ventas` | en `reportes` | en `main` |
+| `sql/` (lo que monta `$(pwd)/sql`) | **`001`, `002`, `003`** | `001`, `002` | `001`, `003` | `001` |
+| Contenedor `db` | · | encendido, fila 2 | encendido, fila 3 | encendido, inicio |
+| Volumen `datos` | · | fila 2: `001`, `002` | fila 3: `001`, `003` | inicio: `001` |
+
+Con `I` = «inicial», `V` = «tabla ventas», `R` = «ventas mensuales» y `M1`, `M2` = los dos merges:
+
+```text
+    V              ventas
+   / \
+  I---M1---M2      main
+   \       /
+    R------        reportes
+```
+
+- Ana creó `002_ventas.sql` y Beto creó `003_ventas_mensuales.sql`: **archivos distintos**. No hay ninguna línea que Git tenga que elegir.
+- Comprobado: los dos merges salen con `Merge made by the 'ort' strategy.`, sin `CONFLICT`.
+- Sólo cambió GitHub. Los discos, contenedores y volúmenes de los tres siguen igual.
 
 Git no sabe SQL. No puede ver que **los dos archivos crean una tabla con el mismo nombre**.
 :::
@@ -535,16 +863,37 @@ docker exec db psql -U postgres -c '\d ventas'
 :::
 
 ::: hint {of="xco2-5"}
-Los dos volúmenes ya tienen una base. ¿Qué hace Postgres con los scripts en ese caso?
+Estado antes de la fila 5:
+
+| | GitHub | Ana | Beto | Caro |
+|---|---|---|---|---|
+| Último commit de `main` | **«merge #2»** | «inicial» | «inicial» | «inicial» |
+| Ramas | `main`, `ventas`, `reportes` | en `ventas` | en `reportes` | en `main` |
+| `sql/` (lo que monta `$(pwd)/sql`) | **`001`, `002`, `003`** | `001`, `002` | `001`, `003` | `001` |
+| Contenedor `db` | · | encendido, fila 2 | encendido, fila 3 | encendido, inicio |
+| Volumen `datos` | · | de la fila 2 | de la fila 3 | inicio: `001` |
+
+¿Están vacíos los volúmenes de Ana y de Beto?
 :::
 
 ::: answer {of="xco2-5"}
-| | Columnas de `ventas` |
-|---|---|
-| Ana | `id`, `cliente`, `total` |
-| Beto | `mes`, `total` |
+**Ana ve `id`, `cliente`, `total`. Beto ve `mes`, `total`. No corrió ningún script.**
 
-**No corrió ningún script**: los dos volúmenes ya tenían base. Los dos tienen el **mismo commit** en el disco y una tabla `ventas` **distinta** en la base. Y los dos dirían «en mi máquina funciona».
+Estado después de la fila 5:
+
+| | GitHub | Ana | Beto | Caro |
+|---|---|---|---|---|
+| Último commit de `main` | «merge #2» | **«merge #2»** | **«merge #2»** | «inicial» |
+| Ramas | `main`, `ventas`, `reportes` | **en `main`** | **en `main`** | en `main` |
+| `sql/` (lo que monta `$(pwd)/sql`) | `001`, `002`, `003` | **`001`, `002`, `003`** | **`001`, `002`, `003`** | `001` |
+| Contenedor `db` | · | **encendido, fila 5** | **encendido, fila 5** | encendido, inicio |
+| Volumen `datos` | · | fila 2: `001`, `002` | fila 3: `001`, `003` | inicio: `001` |
+
+- El pull de cada uno es un fast-forward: ahora los dos montan `001`, `002` y `003`.
+- Los dos volúmenes ya tenían base. Los dos logs dicen *Skipping initialization*.
+- Cada `ventas` es la que dejó la inicialización de su volumen: la de Ana en la fila 2, la de Beto en la fila 3.
+
+Los dos tienen el **mismo commit** en el disco y una tabla `ventas` **distinta** en la base. Y los dos dirían «en mi máquina funciona».
 :::
 
 ::: problem {#xco2-6 title="Fila 6 · Caro se pone al día"}
@@ -562,11 +911,33 @@ docker exec db psql -U postgres -c '\dt'
 :::
 
 ::: hint {of="xco2-6"}
-Mismo razonamiento que la fila 5, pero ¿qué tenía el volumen de Caro?
+Estado antes de la fila 6:
+
+| | GitHub | Ana | Beto | Caro |
+|---|---|---|---|---|
+| Último commit de `main` | «merge #2» | **«merge #2»** | **«merge #2»** | «inicial» |
+| Ramas | `main`, `ventas`, `reportes` | **en `main`** | **en `main`** | en `main` |
+| `sql/` (lo que monta `$(pwd)/sql`) | `001`, `002`, `003` | **`001`, `002`, `003`** | **`001`, `002`, `003`** | `001` |
+| Contenedor `db` | · | **encendido, fila 5** | **encendido, fila 5** | encendido, inicio |
+| Volumen `datos` | · | fila 2: `001`, `002` | fila 3: `001`, `003` | del inicio |
+
+¿Qué scripts corrieron en el volumen de Caro, y cuándo?
 :::
 
 ::: answer {of="xco2-6"}
-**Sólo `clientes`.** Su volumen ya tenía base, así que no corre nada nuevo. Caro tiene el código más reciente y la base más vieja del equipo.
+**Sólo `clientes`.**
+
+Estado después de la fila 6:
+
+| | GitHub | Ana | Beto | Caro |
+|---|---|---|---|---|
+| Último commit de `main` | «merge #2» | «merge #2» | «merge #2» | **«merge #2»** |
+| Ramas | `main`, `ventas`, `reportes` | en `main` | en `main` | en `main` |
+| `sql/` (lo que monta `$(pwd)/sql`) | `001`, `002`, `003` | `001`, `002`, `003` | `001`, `002`, `003` | **`001`, `002`, `003`** |
+| Contenedor `db` | · | encendido, fila 5 | encendido, fila 5 | **encendido, fila 6** |
+| Volumen `datos` | · | fila 2: `001`, `002` | fila 3: `001`, `003` | inicio: `001` |
+
+Su volumen ya tenía base, así que no corre nada nuevo, aunque ahora monte los tres scripts. Caro tiene el código más reciente y la base más vieja del equipo.
 :::
 
 ::: problem {#xco2-7 title="Fila 7 · Caro empieza desde cero"}
@@ -583,20 +954,51 @@ docker logs db
 :::
 
 ::: hint {of="xco2-7"}
-Con el volumen vacío, corren los tres scripts en orden. Cuando llega al `003`, ¿qué tabla ya existe?
+Estado antes de la fila 7:
+
+| | GitHub | Ana | Beto | Caro |
+|---|---|---|---|---|
+| Último commit de `main` | «merge #2» | «merge #2» | «merge #2» | **«merge #2»** |
+| Ramas | `main`, `ventas`, `reportes` | en `main` | en `main` | en `main` |
+| `sql/` (lo que monta `$(pwd)/sql`) | `001`, `002`, `003` | `001`, `002`, `003` | `001`, `002`, `003` | **`001`, `002`, `003`** |
+| Contenedor `db` | · | encendido, fila 5 | encendido, fila 5 | **encendido, fila 6** |
+| Volumen `datos` | · | fila 2: `001`, `002` | fila 3: `001`, `003` | inicio: `001` |
+
+Con el volumen vacío corren los tres scripts en orden. Cuando llega al `003`, ¿qué tabla ya existe?
 :::
 
 ::: answer {of="xco2-7"}
-**`db` no aparece en `docker ps`**: el contenedor se apagó. El log dice:
+**Una vez que termina la inicialización (unos segundos), `db` no aparece en `docker ps`: el contenedor se apagó con código 3. El log muestra que el `003` falló.**
+
+Estado después de la fila 7:
+
+| | GitHub | Ana | Beto | Caro |
+|---|---|---|---|---|
+| Último commit de `main` | «merge #2» | «merge #2» | «merge #2» | «merge #2» |
+| Ramas | `main`, `ventas`, `reportes` | en `main` | en `main` | en `main` |
+| `sql/` (lo que monta `$(pwd)/sql`) | `001`, `002`, `003` | `001`, `002`, `003` | `001`, `002`, `003` | `001`, `002`, `003` |
+| Contenedor `db` | · | encendido, fila 5 | encendido, fila 5 | **apagado, código 3** |
+| Volumen `datos` | · | fila 2: `001`, `002` | fila 3: `001`, `003` | **fila 7: `001`, `002`; `003` falló** |
+
+`docker logs db` (salida real, sin las líneas de `initdb`):
 
 ```text
-running /docker-entrypoint-initdb.d/001_clientes.sql
-running /docker-entrypoint-initdb.d/002_ventas.sql
-running /docker-entrypoint-initdb.d/003_ventas_mensuales.sql
-ERROR:  relation "ventas" already exists
+/usr/local/bin/docker-entrypoint.sh: running /docker-entrypoint-initdb.d/001_clientes.sql
+CREATE TABLE
+/usr/local/bin/docker-entrypoint.sh: running /docker-entrypoint-initdb.d/002_ventas.sql
+CREATE TABLE
+/usr/local/bin/docker-entrypoint.sh: running /docker-entrypoint-initdb.d/003_ventas_mensuales.sql
+2026-10-09 18:43:29.201 UTC [63] ERROR:  relation "ventas" already exists
+psql:/docker-entrypoint-initdb.d/003_ventas_mensuales.sql:1: ERROR:  relation "ventas" already exists
 ```
 
-El `002` creó `ventas`, y el `003` intentó crearla otra vez. Postgres detuvo la inicialización y el contenedor terminó con error. Es la primera vez que alguien prueba **el resultado del merge** sobre una base nueva, y truena. Cada rama por separado funcionaba.
+| Script | Resultado |
+|---|---|
+| `001` | Crea `clientes` |
+| `002` | Crea `ventas` de Ana |
+| `003` | Intenta crear `ventas` otra vez: error, y Postgres detiene la inicialización |
+
+`docker ps -a` lo lista como `Exited (3)`. Es la primera vez que alguien prueba **el resultado del merge** sobre una base nueva, y truena. Cada rama por separado funcionaba.
 :::
 
 ::: problem {#xco2-8 title="Fila 8 · Caro lo intenta otra vez"}
@@ -611,13 +1013,48 @@ No borró el volumen. ¿Arranca? ¿Qué tablas ve? ¿Por qué esto es **peor** q
 :::
 
 ::: hint {of="xco2-8"}
+Estado antes de la fila 8:
+
+| | GitHub | Ana | Beto | Caro |
+|---|---|---|---|---|
+| Último commit de `main` | «merge #2» | «merge #2» | «merge #2» | «merge #2» |
+| Ramas | `main`, `ventas`, `reportes` | en `main` | en `main` | en `main` |
+| `sql/` (lo que monta `$(pwd)/sql`) | `001`, `002`, `003` | `001`, `002`, `003` | `001`, `002`, `003` | `001`, `002`, `003` |
+| Contenedor `db` | · | encendido, fila 5 | encendido, fila 5 | **apagado, código 3** |
+| Volumen `datos` | · | fila 2: `001`, `002` | fila 3: `001`, `003` | de la fila 7 (arranque fallido) |
+
 Después del intento fallido, ¿quedó vacío el volumen?
 :::
 
 ::: answer {of="xco2-8"}
-**Sí arranca**, y ve **`clientes` y `ventas`**, la de Ana. El intento de la fila 7 dejó la base a medias dentro del volumen, así que esta vez Postgres ve una base, se salta los scripts y arranca sin avisar. En el log sólo dice *Skipping initialization*.
+**Sí arranca, y ve `clientes` y `ventas`, la de Ana.**
 
-**Es peor** porque ya no hay error que ver. Caro tiene una base sin la tabla de Beto, y nada se lo dice. Un error que se apaga solo es más caro que uno que se queda a la vista.
+Estado después de la fila 8:
+
+| | GitHub | Ana | Beto | Caro |
+|---|---|---|---|---|
+| Último commit de `main` | «merge #2» | «merge #2» | «merge #2» | «merge #2» |
+| Ramas | `main`, `ventas`, `reportes` | en `main` | en `main` | en `main` |
+| `sql/` (lo que monta `$(pwd)/sql`) | `001`, `002`, `003` | `001`, `002`, `003` | `001`, `002`, `003` | `001`, `002`, `003` |
+| Contenedor `db` | · | encendido, fila 5 | encendido, fila 5 | **encendido, fila 8** |
+| Volumen `datos` | · | fila 2: `001`, `002` | fila 3: `001`, `003` | fila 7: `001`, `002`; `003` falló |
+
+El volumen no quedó vacío: `001` y `002` se aplicaron antes de que fallara el `003`. Esta vez Postgres ve una base, se salta los scripts y arranca sin avisar. Salidas reales, recortadas:
+
+```text
+$ docker logs db
+PostgreSQL Database directory appears to contain a database; Skipping initialization
+...
+$ docker exec db psql -U postgres -c '\dt'
+ public | clientes | table | postgres
+ public | ventas   | table | postgres
+$ docker exec db psql -U postgres -c '\d ventas'
+ id      | integer |           | not null | nextval('ventas_id_seq'::regclass)
+ cliente | integer |           |          | 
+ total   | numeric |           |          | 
+```
+
+**Es peor** porque ya no hay error que ver. Caro tiene una base sin la tabla de Beto, y nada se lo dice. El error de la fila 7 sólo quedaba en el log, y se fue con el `docker rm -f`.
 :::
 
 ::: problem {#xco2-9 title="Fila 9 · La contraseña"}
@@ -638,12 +1075,39 @@ Alguien clona el repo después. ¿Ve `.env` en su disco? ¿La contraseña sigue 
 :::
 
 ::: hint {of="xco2-9"}
-Un commit nuevo no borra los anteriores. ¿Qué guarda Git de cada commit?
+Estado antes de la fila 9:
+
+| | GitHub | Ana | Beto | Caro |
+|---|---|---|---|---|
+| Último commit de `main` | «merge #2» | «merge #2» | «merge #2» | «merge #2» |
+| Ramas | `main`, `ventas`, `reportes` | en `main` | en `main` | en `main` |
+| `sql/` (lo que monta `$(pwd)/sql`) | `001`, `002`, `003` | `001`, `002`, `003` | `001`, `002`, `003` | `001`, `002`, `003` |
+| Contenedor `db` | · | encendido, fila 5 | encendido, fila 5 | **encendido, fila 8** |
+| Volumen `datos` | · | fila 2: `001`, `002` | fila 3: `001`, `003` | fila 7: `001`, `002`; `003` falló |
+
+¿Qué guarda Git de cada commit? ¿Un commit nuevo borra los anteriores?
 :::
 
 ::: answer {of="xco2-9"}
-- **En el disco no**: el último commit ya no tiene `.env`.
-- **Pero la contraseña sigue en GitHub**, en el historial: el commit «config local» guarda el archivo completo. Comprobado: desde un clon nuevo se puede leer con `git show` sobre ese commit.
+**En el disco de un clon nuevo no hay `.env`. La contraseña sigue en GitHub, en el historial.**
+
+Estado después de la fila 9:
+
+| | GitHub | Ana | Beto | Caro |
+|---|---|---|---|---|
+| Último commit de `main` | **«quita .env»** | «merge #2» | **«quita .env»** | «merge #2» |
+| Ramas | `main`, `ventas`, `reportes` | en `main` | en `main` | en `main` |
+| `sql/` (lo que monta `$(pwd)/sql`) | `001`, `002`, `003` | `001`, `002`, `003` | `001`, `002`, `003` | `001`, `002`, `003` |
+| Contenedor `db` | · | encendido, fila 5 | encendido, fila 5 | encendido, fila 8 |
+| Volumen `datos` | · | fila 2: `001`, `002` | fila 3: `001`, `003` | fila 7: `001`, `002`; `003` falló |
+
+- El último commit, «quita .env», ya no tiene el archivo. Un clon nuevo no lo pone en el disco.
+- El commit «config local» guarda el archivo completo, y sigue en `main`. Desde un clon nuevo:
+
+```text
+$ git show HEAD~1:.env
+POSTGRES_PASSWORD=Tienda2026!
+```
 
 Borrar el archivo **no** borra el secreto. Lo único seguro es dar la contraseña por filtrada y **cambiarla**.
 :::
@@ -655,17 +1119,21 @@ Después de la fila 8, ¿qué tablas y qué columnas de `ventas` tiene la base d
 :::
 
 ::: hint {of="xco2-d1"}
-Junta las respuestas de las filas 5 y 8.
+Junta las respuestas de las filas 5 y 8. ¿Qué scripts se aplicaron en cada volumen?
 :::
 
 ::: answer {of="xco2-d1"}
-| | Tablas | `ventas` |
-|---|---|---|
-| Ana | `clientes`, `ventas` | `id`, `cliente`, `total` |
-| Beto | `clientes`, `ventas` | `mes`, `total` |
-| Caro | `clientes`, `ventas` | `id`, `cliente`, `total`, a medias: nunca corrió el `003` |
+| | Scripts aplicados | Tablas | Columnas de `ventas` |
+|---|---|---|---|
+| Ana | `001`, `002` (fila 2) | `clientes`, `ventas` | `id`, `cliente`, `total` |
+| Beto | `001`, `003` (fila 3) | `clientes`, `ventas` | `mes`, `total` |
+| Caro | `001`, `002`; el `003` corrió y falló (fila 7) | `clientes`, `ventas` | `id`, `cliente`, `total` |
 
-**Ninguna es la correcta**, porque `main` no describe una base posible: sus scripts no pueden correr completos. Tres bases distintas salieron del mismo commit, porque cada volumen guarda **la historia de cuándo se creó**, no el código actual.
+**Ninguna es la correcta**, porque `main` no describe una base posible: sus scripts no pueden correr completos.
+
+- La base de Caro tiene la misma estructura que la de Ana: el `003` sí corrió, pero falló sin dejar nada (log de la fila 7, `\d ventas` de la fila 8). Nada en la base registra que su inicialización falló.
+
+Tres volúmenes, el mismo commit, dos estructuras de `ventas`. Cada volumen guarda **la historia de cuándo se creó**, no el código actual.
 :::
 
 ::: problem {#xco2-d2 title="D2 · Sin conflicto, pero roto"}
@@ -673,7 +1141,7 @@ Git dijo «sin conflicto» en la fila 4. Explica por qué eso no garantizaba nad
 :::
 
 ::: hint {of="xco2-d2"}
-¿Qué compara Git cuando mezcla? ¿Qué tendría que entender para ver este problema?
+¿Qué compara Git cuando mezcla?
 :::
 
 ::: answer {of="xco2-d2"}
@@ -687,19 +1155,19 @@ Sin escribir comandos: ¿qué costumbres habrían evitado los problemas de las f
 :::
 
 ::: hint {of="xco2-d3"}
-Piensa en tres frentes: cómo se cambia la estructura de una base que ya existe, qué se prueba antes de mergear, y qué nunca entra a Git.
+Tres frentes: cómo se cambia una base que ya existe, qué se prueba antes de mergear, y qué nunca entra a Git.
 :::
 
 ::: answer {of="xco2-d3"}
 | Práctica | Qué habría cambiado |
 |---|---|
-| **Migraciones, no scripts de arranque.** Cada cambio a la base es un paso numerado que se aplica **una sola vez y en orden**. Una herramienta lleva la cuenta, dentro de la propia base, de cuáles ya se aplicaron | Ana, Beto y Caro recibirían los cambios nuevos sin borrar su volumen (filas 1, 5 y 6) |
-| **Probar el resultado del merge, no cada rama sola**: una revisión automática que levante la base **desde un volumen vacío** con el `main` que resultaría del merge | El choque de la fila 7 habría aparecido en el pull request #2, antes de llegar a `main` |
-| **Revisar los pull requests por lo que hacen**, no sólo porque mezclan limpio. Quien revisa el #2 debe preguntarse si `ventas` ya existe | Beto habría llamado distinto a su tabla, o se habrían puesto de acuerdo |
-| **Coordinar la numeración y los nombres**: un solo lugar donde se ve qué cambios a la base están en curso | Dos personas no inventan la misma tabla al mismo tiempo |
-| **Leer el error antes de reintentar**, y no reintentar sobre un volumen que quedó a medias | Caro no habría tapado el error con un arranque silencioso (fila 8) |
-| **Los secretos nunca entran a Git**: `.env` va en el `.gitignore`, y al repo sube un ejemplo sin valores reales. Si uno se filtra, se cambia | La contraseña no estaría en el historial (fila 9) |
-| **Tratar el volumen como estado, no como algo desechable**: decidir en equipo cuándo se borra, y respaldar antes | Ana no habría perdido sus datos de prueba (fila 2) |
+| **Migraciones, no scripts de arranque** | Pasos numerados que se aplican una vez, en orden, y la base anota cuáles lleva: nadie borra su volumen (filas 1, 5 y 6) |
+| **Probar el resultado del merge** | Una revisión automática levanta la base desde un volumen vacío con el `main` que resultaría: el choque de la fila 7 aparece en el pull request #2 |
+| **Revisar lo que hace un pull request** | No basta con que mezcle limpio. Quien revisa el #2 pregunta si `ventas` ya existe |
+| **Coordinar nombres y numeración** | Un solo lugar donde se ven los cambios a la base en curso: nadie inventa la misma tabla a la vez |
+| **Leer el error antes de reintentar** | No reintentar sobre un volumen que quedó a medias: Caro no tapa el error (fila 8) |
+| **Secretos fuera de Git** | `.env` en el `.gitignore` y un ejemplo sin valores reales en el repo; si uno se filtra, se cambia (fila 9) |
+| **El volumen es estado** | Decidir en equipo cuándo se borra, y respaldar antes: Ana no pierde sus datos (fila 2) |
 :::
 
 **Repasa:** [[branches-y-merge]], [[el-flujo-del-curso]], [[named-volumes-y-postgres]], [[donde-vive-cada-byte]] y [[lo-que-no-se-sube]].

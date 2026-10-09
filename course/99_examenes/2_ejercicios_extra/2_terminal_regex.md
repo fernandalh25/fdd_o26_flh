@@ -10,6 +10,8 @@ tags: [ejercicios, terminal, bash, regex, rutas]
 
 # Ejercicios extra de terminal y regex
 
+**[PDF sin respuestas, para imprimir](../_assets/practica-terminal.pdf)** · unos 40 minutos · sin apuntes
+
 Miden lo mismo que el [[parcial-terminal|parcial 2]] con casos nuevos. Debajo de cada pregunta hay dos cosas plegadas:
 
 - **la pista**: ábrela sólo si llevas un rato atorado; si la abres de inmediato, el ejercicio pierde su chiste;
@@ -34,12 +36,30 @@ Lee de izquierda a derecha y cuenta: ¿cuántas letras exige antes del guion, de
 ::: answer {of="xt-r1"}
 **Sólo `ABC-1234`.**
 
-- `AB-1234` tiene dos letras, y se piden exactamente tres (`{3}`).
-- `ABC-12345` tiene cinco dígitos: el `$` exige que la línea termine después del cuarto.
-- `abc-1234` usa minúsculas, y `[A-Z]` sólo acepta mayúsculas.
-- `ABCD-1234` tiene cuatro letras: el `^` exige que la línea empiece justo en la primera de las tres.
+| Línea | Qué falla |
+|---|---|
+| `AB-1234` | Dos letras; `{3}` pide exactamente tres |
+| `ABC-12345` | Cinco dígitos; el `$` exige que la línea termine después del cuarto |
+| `abc-1234` | Minúsculas; `[A-Z]` sólo acepta mayúsculas |
+| `ABCD-1234` | Cuatro letras; ver el recorrido de abajo |
 
-Sin `^` y `$`, `ABCD-1234` y `ABC-12345` **sí** pasarían, porque contienen un pedazo que cumple. Por eso los anclajes importan cuando quieres validar la línea completa.
+Recorrido de `ABCD-1234` con `^`. El `^` obliga a empezar en el primer carácter de la línea (`A`):
+
+| Pieza | Carácter | ¿Cumple? |
+|---|---|---|
+| `[A-Z]` (1.ª de 3) | `A` | sí |
+| `[A-Z]` (2.ª de 3) | `B` | sí |
+| `[A-Z]` (3.ª de 3) | `C` | sí |
+| `-` | `D` | **no**: espera un guion |
+
+Sin `^`, grep vuelve a intentar desde la `B` y encuentra `BCD-1234`:
+
+```text
+$ echo ABCD-1234 | grep -Eo '[A-Z]{3}-[0-9]{4}$'
+BCD-1234
+```
+
+Lo mismo pasa sin `$` con `ABC-12345`: `grep -Eo '^[A-Z]{3}-[0-9]{4}'` imprime `ABC-1234`. Por eso, para validar la línea completa, van los dos anclajes.
 :::
 
 ::: problem {#xt-r2 title="R2 · Código postal"}
@@ -67,16 +87,28 @@ Las horas no se pueden describir con una sola clase por dígito: de `00` a `19` 
 :::
 
 ::: answer {of="xt-r3"}
+**`^([01][0-9]|2[0-3]):[0-5][0-9]$`**
+
+| Pieza | Cubre |
+|---|---|
+| `[01][0-9]` | horas de `00` a `19` |
+| `2[0-3]` | horas de `20` a `23` |
+| `(` `)` alrededor de las dos alternativas | las agrupan como una sola pieza: la hora |
+| `:` | los dos puntos |
+| `[0-5][0-9]` | minutos de `00` a `59` |
+
+**Por qué los paréntesis.** El `|` parte **todo** el patrón en dos. Sin agrupar, `^[01][0-9]|2[0-3]:[0-5][0-9]$` significa «empieza con `00`–`19`» **o** «termina en `20:00`–`23:59`». La primera opción ya no mira los minutos:
+
 ```text
-^([01][0-9]|2[0-3]):[0-5][0-9]$
+$ printf '%s\n' 07:30 24:00 7:30 12:60 19xyz | grep -E '^[01][0-9]|2[0-3]:[0-5][0-9]$'
+07:30
+12:60
+19xyz
 ```
 
-- `[01][0-9]` cubre de `00` a `19`.
-- `2[0-3]` cubre de `20` a `23`.
-- Los paréntesis agrupan las dos opciones para que el `|` no se lleve el resto del patrón.
-- `[0-5][0-9]` cubre los minutos de `00` a `59`.
+`12:60` y `19xyz` entran porque empiezan con `12` y `19`.
 
-**Error típico:** `[0-2][0-9]`. Acepta `29:00`.
+**Error típico:** `^[0-2][0-9]:[0-5][0-9]$`. Acepta `24:00` y `29:00`.
 :::
 
 ::: problem {#xt-r4 title="R4 · Fecha AAAA-MM-DD"}
@@ -107,15 +139,23 @@ Hay un carácter en `itam.mx` que en una regex no significa lo que parece. ¿Qu�
 :::
 
 ::: answer {of="xt-r5"}
-```text
-^[a-z0-9._]+@itam\.mx$
-```
+**`^[a-z0-9._]+@itam\.mx$`**
 
 - `[a-z0-9._]+` es el usuario: uno o más de esos caracteres. **Dentro** de los corchetes el punto es literal.
-- `\.` es un punto literal. Sin la barra, `itam.mx` también aceptaría `itamxmx`, porque `.` es «cualquier carácter».
+- `\.` es un punto literal. Fuera de corchetes, `.` sin barra es «cualquier carácter».
 - El `$` rechaza `ana@itam.mx.com`.
 
-Si tu terminal está en español y quieres aceptar mayúsculas, `[[:alnum:]._]` es más seguro que `[a-zA-Z]`.
+Con y sin la barra:
+
+```text
+$ printf '%s\n' ana.perez@itam.mx ana@itamxmx ana@itam.mx.com | grep -E '^[a-z0-9._]+@itam\.mx$'
+ana.perez@itam.mx
+$ printf '%s\n' ana.perez@itam.mx ana@itamxmx ana@itam.mx.com | grep -E '^[a-z0-9._]+@itam.mx$'
+ana.perez@itam.mx
+ana@itamxmx
+```
+
+Sin la barra, el `.` se come la `x` de `itamxmx`.
 :::
 
 ::: problem {#xt-r6 title="R6 · La palabra repetida"}
@@ -141,9 +181,18 @@ es es
 
 - `(\w+)` captura una palabra, y `\1` (la **retro-referencia**) exige repetir exactamente lo capturado.
 - `-o` imprime sólo el pedazo que coincidió, no la línea completa.
-- `los losas` no coincide: después del segundo `los` viene una `a`, no un fin de palabra, y el `\b` final lo exige.
+- `los losas` no coincide: después del segundo `los` viene una `a`, no un fin de palabra, y el `\b` final lo exige. Sin ese `\b`, `grep -Eo '\b(\w+) \1'` sí imprime `los los`.
 
-La retro-referencia en `grep -E` es una extensión de GNU: funciona en Linux, y puede no funcionar en el `grep` de macOS.
+**¿Por qué aquí sí sirven `\w` y `\b`, si `\d` no?** GNU grep agrega `\w`, `\s` y `\b` a `grep -E` como extensión propia; `\d` no está en esa lista y se lee como una `d` literal:
+
+```text
+$ printf '%s\n' a1 ad | grep -nE '\d'
+2:ad
+```
+
+Encontró `ad` (tiene una `d`), no `a1` (tiene un dígito). En grep 3.8 o más nuevo aparece además `grep: warning: stray \ before d`: el mismo mensaje, `\d` no es un dígito. La lista completa está en [[taquigrafia-perl|La taquigrafía de Perl]].
+
+La retro-referencia en `grep -E` también es una extensión de GNU: funciona en Linux, y puede no funcionar en el `grep` de macOS.
 :::
 
 ::: problem {#xt-r7 title="R7 · Enteros sin ceros a la izquierda"}
@@ -157,9 +206,25 @@ Hay dos caminos separados por `|`. ¿Con qué puede empezar el segundo? ¿Qué p
 ::: answer {of="xt-r7"}
 **`0`, `7`, `10` y `120`.**
 
-Describe **enteros no negativos sin ceros a la izquierda**: o el `0` solo, o un dígito de 1 a 9 seguido de cualquier cantidad de dígitos (`*` también acepta cero repeticiones, por eso pasa el `7`). Rechaza `007` y `00` por el cero inicial, y `-3` porque nadie permite el signo.
+Describe **enteros no negativos sin ceros a la izquierda**.
 
-Es la misma idea que el importe del examen B del parcial: separar el caso del cero.
+| Camino | Acepta | Ejemplos |
+|---|---|---|
+| `0` | el cero solo | `0` |
+| `[1-9][0-9]*` | un dígito de 1 a 9 y luego cero o más dígitos | `7`, `10`, `120` |
+
+- `007` y `00` empiezan con `0` y siguen: el camino `0` exige que la línea termine ahí, y el otro no acepta un `0` inicial.
+- `-3` falla porque ningún camino permite el signo.
+
+```text
+$ printf '%s\n' 0 7 10 007 00 120 -3 | grep -E '^(0|[1-9][0-9]*)$'
+0
+7
+10
+120
+```
+
+Es la misma idea que el importe del [[parcial-terminal-b|examen B del parcial]]: separar el caso del cero.
 :::
 
 **Repasa:** [[piezas-de-un-patron|Las piezas de un patrón]], [[cuantas-veces|Cuántas veces]], [[taquigrafia-perl|La taquigrafía de Perl]] y [[grupos-y-captura|Grupos y captura]].
@@ -197,7 +262,19 @@ Casi todos son abreviaturas en inglés: *list*, *concatenate*, *word count*, *ma
 | 7 | `mv viejo.txt nuevo.txt` | En la terminal, renombrar es mover a otro nombre |
 | 8 | `cd ..` | `..` es la carpeta madre; `cd` a secas va a tu home |
 | 9 | `\|` (tubería) | `history \| grep cd` busca en el historial |
-| 10 | `rmdir carpeta` | Se niega si no está vacía (comprobado). Es la versión segura |
+| 10 | `rmdir carpeta` | Se niega si no está vacía. Es la versión segura |
+
+El 10, probado con una carpeta llena y otra vacía:
+
+```text
+$ mkdir llena vacia
+$ touch llena/x
+$ rmdir llena
+rmdir: failed to remove 'llena': Directory not empty
+$ rmdir vacia
+$ ls
+llena
+```
 :::
 
 **Repasa:** [[archivos-y-comandos|Archivos y comandos]] y [[flujos-procesos-y-herramientas|Historial, tuberías y herramientas]].
@@ -225,12 +302,23 @@ Desde `scripts/`, ¿cuántos niveles subes para llegar a `ana/`? ¿Y para llegar
 :::
 
 ::: answer {of="xt-p1"}
-```bash
-mv ../../descargas/nuevo.csv ../datos/
-```
+**`mv ../../descargas/nuevo.csv ../datos/`**
 
-- **Origen:** subes dos niveles (`scripts` → `proyecto` → `ana`) y bajas a `descargas/`.
-- **Destino:** subes uno (a `proyecto`) y bajas a `datos/`.
+Origen, desde `/home/ana/proyecto/scripts`:
+
+| Pedazo | Quedas en |
+|---|---|
+| `..` | `/home/ana/proyecto` |
+| `..` | `/home/ana` |
+| `descargas` | `/home/ana/descargas` |
+| `nuevo.csv` | `/home/ana/descargas/nuevo.csv` |
+
+Destino, desde el mismo lugar:
+
+| Pedazo | Quedas en |
+|---|---|
+| `..` | `/home/ana/proyecto` |
+| `datos` | `/home/ana/proyecto/datos` |
 :::
 
 ::: problem {#xt-p2 title="P2 · Las dos absolutas"}
@@ -328,7 +416,33 @@ b) `respaldo/` ya existe y es una carpeta.
 - **a)** Lo **renombra**: ahora hay un archivo llamado `respaldo`, sin extensión.
 - **b)** Lo **mete en la carpeta**: queda `respaldo/crudo.csv`.
 
-Las dos cosas se comprobaron. Para dejar claro que esperas una carpeta, escribe el destino con diagonal final: `mv crudo.csv respaldo/`. Si la carpeta no existe, eso falla en lugar de renombrar a escondidas.
+`ls -F` marca las carpetas con `/` al final. Caso a), en una carpeta vacía:
+
+```text
+$ touch crudo.csv
+$ mv crudo.csv respaldo
+$ ls -F
+respaldo
+```
+
+Caso b), en otra carpeta vacía:
+
+```text
+$ mkdir respaldo
+$ touch crudo.csv
+$ mv crudo.csv respaldo
+$ ls -F
+respaldo/
+$ ls respaldo
+crudo.csv
+```
+
+Para dejar claro que esperas una carpeta, escribe el destino con diagonal final. `mv` lee la `/` final como «esto es una carpeta»; como no existe ninguna carpeta con ese nombre, se niega:
+
+```text
+$ mv crudo.csv respaldo/
+mv: cannot move 'crudo.csv' to 'respaldo/': Not a directory
+```
 :::
 
 **Repasa:** [[entrar-y-orientarte|Entrar y orientarte]] y [[archivos-y-comandos|Archivos y comandos]].
