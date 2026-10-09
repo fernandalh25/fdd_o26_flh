@@ -37,7 +37,7 @@ jobs:
   # push sobre la rama default.
   course-pages:
     needs: checks
-    uses: raya-lucaria/raya-lucaria.github.io/.github/workflows/reusable-course-pages.yml@66edb744a7d03db7ad080ad0105e11c9a170d37a
+    uses: raya-lucaria/raya-lucaria.github.io/.github/workflows/reusable-course-pages.yml@838c2af9eba0fd102e6027e109d43d2d02eda50d
     with:
       course_path: .
     permissions:
