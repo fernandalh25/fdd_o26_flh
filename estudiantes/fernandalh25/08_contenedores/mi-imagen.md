@@ -24,7 +24,7 @@ URL: https://hub.docker.com/r/fersy25/fersy-tarea-08
 
 ```text
 docker inspect --format '{{index .RepoDigests 0}}' fersy25/fersy-tarea-08
-fersy25/fersy-tarea-08@sha256:2ee243c76ecc8bf956e5b85037c335478190a0642f1b018aeacfea13544688ca
+fersy25/fersy-tarea-08@sha256:4935ce213dbb7ca1d3ef21600e4d9a2157598847875f321df0439c0643ed00e8
 ```
 
 ## Cómo la corro yo
@@ -40,12 +40,16 @@ Salida que debo esperar
 ```text
 Unable to find image 'fersy25/fersy-tarea-08:latest' locally
 latest: Pulling from fersy25/fersy-tarea-08
-70c33d8f5da8: Pull complete 
-d7a78688ae08: Pull complete 
-1aeaaf75e28e: Pull complete 
-3209c9ff24e6: Pull complete 
-0a4e3e7859af: Download complete 
-Digest: sha256:2ee243c76ecc8bf956e5b85037c335478190a0642f1b018aeacfea13544688ca
+774043ccc8cc: Pull complete
+fae068737816: Pull complete
+e5c850752c51: Pull complete
+1cb952ef3002: Pull complete
+70c33d8f5da8: Pull complete
+3209c9ff24e6: Pull complete
+41278486fe09: Pull complete
+e4a4941c8989: Pull complete
+713469e7520c: Pull complete
+Digest: sha256:4935ce213dbb7ca1d3ef21600e4d9a2157598847875f321df0439c0643ed00e8
 Status: Downloaded newer image for fersy25/fersy-tarea-08:latest
 Corriendo como: appuser
 requests 2.32.3
@@ -66,11 +70,19 @@ Untagged: fersy25/fersy-tarea-08:latest
 docker run --rm fersy25/fersy-tarea-08
 Unable to find image 'fersy25/fersy-tarea-08:latest' locally
 latest: Pulling from fersy25/fersy-tarea-08
-Digest: sha256:2ee243c76ecc8bf956e5b85037c335478190a0642f1b018aeacfea13544688ca
+774043ccc8cc: Pull complete
+fae068737816: Pull complete
+e5c850752c51: Pull complete
+1cb952ef3002: Pull complete
+70c33d8f5da8: Pull complete
+3209c9ff24e6: Pull complete
+41278486fe09: Pull complete
+e4a4941c8989: Pull complete
+713469e7520c: Pull complete
+Digest: sha256:4935ce213dbb7ca1d3ef21600e4d9a2157598847875f321df0439c0643ed00e8
 Status: Downloaded newer image for fersy25/fersy-tarea-08:latest
 Corriendo como: appuser
 requests 2.32.3
-
 ```
 
 ## El tamaño
@@ -79,7 +91,6 @@ Menos de 300 MB. Pega la salida con el tamaño visible:
 
 ```text
 docker images fersy25/fersy-tarea-08
-IMAGE                           ID             DISK USAGE   CONTENT SIZE   EXTRA
-fersy25/fersy-tarea-08:latest   2ee243c76ecc        206MB         50.7MB    U   
-
+REPOSITORY               TAG       IMAGE ID       CREATED          SIZE
+fersy25/fersy-tarea-08   latest    cd0f50c1ee7c   27 minutes ago   136MB
 ```
