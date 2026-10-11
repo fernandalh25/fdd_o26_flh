@@ -84,7 +84,7 @@ Salió igual: Que estoy en un ambiente y todos los paquetes con sus versiones co
 
 URL pública: https://hub.docker.com/r/fersy25/reporte
 
-Digest: sha256:6f1d99ea2acf9f401ee8ee4599359862eec77f925e30ea1a701e14201d93ddf5 
+Digest: sha256:63c040d33567b9175e3611445bc09587e42f140a83944fb3b2eeaa4ce42bb99a
 
 Comando para correrla: docker run fersy25/reporte:latest
 
@@ -96,8 +96,10 @@ tu imagen local con la bandera de forzar, y correrla otra vez.
 ```text
 Unable to find image 'fersy25/reporte:latest' locally
 latest: Pulling from fersy25/reporte
-dc0ee3016bdb: Download complete 
-Digest: sha256:6f1d99ea2acf9f401ee8ee4599359862eec77f925e30ea1a701e14201d93ddf5
+7b27922bcc9c: Pull complete 
+379505fbc12b: Pull complete 
+4e1f3f0a4107: Download complete 
+Digest: sha256:63c040d33567b9175e3611445bc09587e42f140a83944fb3b2eeaa4ce42bb99a
 Status: Downloaded newer image for fersy25/reporte:latest
                 Mi ambiente                 
 ┏━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━┓
@@ -108,7 +110,7 @@ Status: Downloaded newer image for fersy25/reporte:latest
 │ sys.prefix       │ /app/.venv            │
 │ ¿En un ambiente? │ sí                    │
 │ Sistema          │ Linux aarch64         │
-│ Nombre falso     │ Alex Ramirez          │
+│ Nombre falso     │ Derrick Ortiz         │
 └──────────────────┴───────────────────────┘
     Paquetes instalados     
 ┏━━━━━━━━━━━━━━━━┳━━━━━━━━━┓
