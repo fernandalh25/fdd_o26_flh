@@ -84,7 +84,7 @@ Salió igual: Que estoy en un ambiente y todos los paquetes con sus versiones co
 
 URL pública: https://hub.docker.com/r/fersy25/reporte
 
-Digest: sha256:1d018470179673da0a8a13dcd12f7aa92155114845e8fd668b151130ba60cdee 
+Digest: sha256:6f1d99ea2acf9f401ee8ee4599359862eec77f925e30ea1a701e14201d93ddf5 
 
 Comando para correrla: docker run fersy25/reporte:latest
 
@@ -96,13 +96,8 @@ tu imagen local con la bandera de forzar, y correrla otra vez.
 ```text
 Unable to find image 'fersy25/reporte:latest' locally
 latest: Pulling from fersy25/reporte
-6179bd7ef77c: Pull complete 
-584e243fd549: Pull complete 
-826584de67c8: Pull complete 
-65f3fd137217: Pull complete 
-f5fc0c0bba37: Pull complete 
-d7f7c988d566: Download complete 
-Digest: sha256:1d018470179673da0a8a13dcd12f7aa92155114845e8fd668b151130ba60cdee
+dc0ee3016bdb: Download complete 
+Digest: sha256:6f1d99ea2acf9f401ee8ee4599359862eec77f925e30ea1a701e14201d93ddf5
 Status: Downloaded newer image for fersy25/reporte:latest
                 Mi ambiente                 
 ┏━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━┓
@@ -113,7 +108,7 @@ Status: Downloaded newer image for fersy25/reporte:latest
 │ sys.prefix       │ /app/.venv            │
 │ ¿En un ambiente? │ sí                    │
 │ Sistema          │ Linux aarch64         │
-│ Nombre falso     │ Caroline Mcconnell    │
+│ Nombre falso     │ Alex Ramirez          │
 └──────────────────┴───────────────────────┘
     Paquetes instalados     
 ┏━━━━━━━━━━━━━━━━┳━━━━━━━━━┓
