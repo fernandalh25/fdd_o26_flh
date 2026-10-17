@@ -48,6 +48,7 @@ La salida completa del reporte corrido desde tu imagen.
 
 ```text
   Mi ambiente                 
+           
 ┏━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━┓
 ┃ Qué              ┃ Valor                 ┃
 ┡━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━┩
@@ -55,9 +56,11 @@ La salida completa del reporte corrido desde tu imagen.
 │ Intérprete       │ /app/.venv/bin/python │
 │ sys.prefix       │ /app/.venv            │
 │ ¿En un ambiente? │ sí                    │
-│ Sistema          │ Linux aarch64         │
-│ Nombre falso     │ Tonya Watkins         │
+│ Sistema          │ Linux x86_64          │
+│ Nombre falso     │ Melissa Robinson      │
 └──────────────────┴───────────────────────┘
+
+
     Paquetes instalados     
 ┏━━━━━━━━━━━━━━━━┳━━━━━━━━━┓
 ┃ Paquete        ┃ Versión ┃
@@ -76,9 +79,9 @@ Tres líneas, con los valores de arriba: qué salió igual en las dos, qué sali
 distinto, y por qué.
 
 Cambió la versión de python, el intérprete, sys.prefix porque una corrió en mi local de donde toma la versión de python 3.14.2, mientras que la del contenedor utiliza 3.13.16 indicado en el Dockerfile
-También cambió el sistema y el Fake Name por la diferencia en la arquitectura (una de mi máquina y otra de la imagen que viene de linux) y el nombre porque se generó cada vez que se ejecuta
+También cambió el sistema y el Fake Name por la diferencia en la arquitectura (una de mi máquina y otra de la imagen que viene de linux) y el nombre porque se genera cada vez que se ejecuta
 
-Salió igual: Que estoy en un ambiente y todos los paquetes con sus versiones correspondientes porque es justo lo que asegura un venv, que se trabaje sobre las mismas versiones exactas
+Salió igual que ambos corren dentro de un ambiente virtual y que los paquetes instalados tienen las mismas versiones. Esto último se debe a que tanto el ambiente local como el del contenedor se construyeron usando el mismo uv.lock, el cual fija las versiones exactas de las dependencias.
 
 ## Tu imagen en Docker Hub
 
@@ -94,6 +97,13 @@ La salida completa, en este orden, de cerrar sesión en el registro, borrar
 tu imagen local con la bandera de forzar, y correrla otra vez.
 
 ```text
+uv_docker % docker logout
+Removing login credentials for https://index.docker.io/v1/
+
+uv_docker % docker image rm -f fersy25/reporte:latest 
+Untagged: fersy25/reporte:latest
+
+uv_docker % docker run fersy25/reporte:latest
 Unable to find image 'fersy25/reporte:latest' locally
 latest: Pulling from fersy25/reporte
 7b27922bcc9c: Pull complete 
